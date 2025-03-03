@@ -33,6 +33,7 @@ class AudioRecorder(
     private val frameBytes = frameSize * channels * 2 // 16-bit PCM
     private val audioChannel = Channel<ByteArray>(capacity = 50)
 
+
     @SuppressLint("MissingPermission")
     fun startRecording(): Flow<ByteArray> {
         audioRecord = AudioRecord(

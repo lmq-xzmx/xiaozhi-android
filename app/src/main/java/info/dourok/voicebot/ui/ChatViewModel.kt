@@ -14,6 +14,7 @@ import info.dourok.voicebot.OpusStreamPlayer
 import info.dourok.voicebot.data.SettingsRepository
 import info.dourok.voicebot.data.model.DeviceInfo
 import info.dourok.voicebot.data.model.TransportType
+import info.dourok.voicebot.protocol.AbortReason
 import info.dourok.voicebot.protocol.ListeningMode
 import info.dourok.voicebot.protocol.MqttProtocol
 import info.dourok.voicebot.protocol.Protocol
@@ -58,7 +59,7 @@ class ChatViewMode @Inject constructor(
     var player: OpusStreamPlayer? = null
     var aborted: Boolean = false
     var keepListening: Boolean = true
-    val deviceStateFlow = MutableStateFlow(DeviceState.UNKNOWN)
+    val deviceStateFlow = MutableStateFlow(DeviceState.IDLE)
     var deviceState: DeviceState
         get() = deviceStateFlow.value
         set(value) {
@@ -66,10 +67,13 @@ class ChatViewMode @Inject constructor(
         }
 
     init {
+
+        deviceState = DeviceState.STARTING
+
         viewModelScope.launch {
             //FIXME start before checking the version
             protocol.start()
-
+            deviceState = DeviceState.CONNECTING
             if (protocol.openAudioChannel()) {
                 protocol.sendStartListening(ListeningMode.AUTO_STOP)
                 withContext(Dispatchers.IO) {
@@ -79,7 +83,10 @@ class ChatViewMode @Inject constructor(
                         val frameSizeMs = 60
                         player = OpusStreamPlayer(sampleRate, channels, frameSizeMs)
                         decoder = OpusDecoder(sampleRate, channels, frameSizeMs)
-                        player?.start(protocol.incomingAudioFlow.map { decoder?.decode(it) })
+                        player?.start(protocol.incomingAudioFlow.map {
+                            deviceState = DeviceState.SPEAKING
+                            decoder?.decode(it)
+                        })
                     }
                 }
             } else {
@@ -121,7 +128,9 @@ class ChatViewMode @Inject constructor(
                                 "stop" -> {
                                     schedule {
                                         if (deviceState == DeviceState.SPEAKING) {
-                                            // backgroundTask?.waitForCompletion()
+                                            Log.i(TAG, "waiting for TTS to stop")
+                                            player?.waitForPlaybackCompletion()
+                                            Log.i(TAG, "TTS stopped")
                                             if (keepListening) {
                                                 protocol.sendStartListening(ListeningMode.AUTO_STOP)
                                                 deviceState = DeviceState.LISTENING
@@ -180,12 +189,91 @@ class ChatViewMode @Inject constructor(
         }
     }
 
+    fun toggleChatState() {
+        viewModelScope.launch {
+            when (deviceState) {
+                DeviceState.ACTIVATING -> {
+                    reboot()
+                }
+
+                DeviceState.IDLE -> {
+                    if (protocol.openAudioChannel()) {
+                        keepListening = true
+                        protocol.sendStartListening(ListeningMode.AUTO_STOP)
+                        deviceState = DeviceState.LISTENING
+                    } else {
+                        deviceState = DeviceState.IDLE
+                    }
+                }
+
+                DeviceState.SPEAKING -> {
+                    abortSpeaking(AbortReason.NONE)
+                }
+
+                DeviceState.LISTENING -> {
+                    protocol.closeAudioChannel()
+                }
+
+                else -> {
+                    Log.e(TAG, "Protocol not initialized or invalid state")
+                }
+            }
+        }
+    }
+
+    fun startListening() {
+        viewModelScope.launch {
+            if (deviceState == DeviceState.ACTIVATING) {
+                reboot()
+                return@launch
+            }
+
+            keepListening = false
+            if (deviceState == DeviceState.IDLE) {
+                if (!protocol.isAudioChannelOpened()) {
+                    deviceState = DeviceState.CONNECTING
+                    if (!protocol.openAudioChannel()) {
+                        deviceState = DeviceState.IDLE
+                        return@launch
+                    }
+                }
+                protocol.sendStartListening(ListeningMode.MANUAL)
+                deviceState = DeviceState.LISTENING
+            } else if (deviceState == DeviceState.SPEAKING) {
+                abortSpeaking(AbortReason.NONE)
+                protocol.sendStartListening(ListeningMode.MANUAL)
+                delay(120) // Wait for the speaker to empty the buffer
+                deviceState = DeviceState.LISTENING
+            }
+        }
+    }
+
+    private fun reboot() {
+        // Implement the reboot logic here
+    }
+
+    fun abortSpeaking(reason: AbortReason) {
+        Log.i(TAG, "Abort speaking")
+        aborted = true
+        viewModelScope.launch {
+            protocol.sendAbortSpeaking(reason)
+        }
+    }
     private fun schedule(task: suspend () -> Unit) {
         viewModelScope.launch {
             task()
         }
     }
 
+
+    fun stopListening() {
+        viewModelScope.launch {
+            if (deviceState == DeviceState.LISTENING) {
+                protocol.sendStopListening()
+                deviceState = DeviceState.IDLE
+            }
+        }
+    }
 
     override fun onCleared() {
         protocol.dispose()

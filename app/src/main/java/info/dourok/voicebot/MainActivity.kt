@@ -2,7 +2,9 @@ package info.dourok.voicebot
 
 import android.Manifest
 import android.app.Activity
+import android.content.Context
 import android.content.pm.PackageManager
+import android.media.AudioManager
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -61,6 +63,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+//        (getSystemService(AUDIO_SERVICE) as AudioManager).mode = AudioManager.MODE_IN_COMMUNICATION
         Log.d("MainActivity", "onCreate")
         if (ActivityCompat.checkSelfPermission(
                 this,

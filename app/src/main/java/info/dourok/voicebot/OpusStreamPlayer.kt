@@ -8,6 +8,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
@@ -31,7 +32,7 @@ class OpusStreamPlayer(
             sampleRate,
             channelConfig,
             AudioFormat.ENCODING_PCM_16BIT
-        ) * 2 // 增大缓冲区
+        ) * 2 // Increase buffer size
 
         audioTrack = AudioTrack.Builder()
             .setAudioAttributes(
@@ -76,7 +77,6 @@ class OpusStreamPlayer(
     fun stop() {
         if (isPlaying) {
             isPlaying = false
-            playerScope.cancel()
             if (audioTrack.state == AudioTrack.STATE_INITIALIZED) {
                 audioTrack.stop()
             }
@@ -86,6 +86,15 @@ class OpusStreamPlayer(
     fun release() {
         stop()
         audioTrack.release()
+    }
+
+    suspend fun waitForPlaybackCompletion() {
+        var position = 0
+        while (audioTrack.playState == AudioTrack.PLAYSTATE_PLAYING && audioTrack.playbackHeadPosition != position) {
+            Log.i(TAG, "audioTrack.playState: ${audioTrack.playState}, playbackHeadPosition: ${audioTrack.playbackHeadPosition}")
+            position = audioTrack.playbackHeadPosition
+            delay(100) // 检查间隔
+        }
     }
 
     protected fun finalize() {

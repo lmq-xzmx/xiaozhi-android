@@ -1,12 +1,16 @@
 package info.dourok.voicebot.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,6 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,6 +37,7 @@ fun ChatScreen(
 ) {
     val messages by viewModel.display.chatFlow.collectAsState()
     val emotion by viewModel.display.emotionFlow.collectAsState()
+    val deviceState by viewModel.deviceStateFlow.collectAsState() // Added device state
     // Emotion to emoji mapping
     val emotionEmojiMap = mapOf(
         "neutral" to "😐",
@@ -58,20 +64,47 @@ fun ChatScreen(
     )
     Column(
         modifier = Modifier
-            .fillMaxSize()
+            .fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Emotion display at top center with bigger emoji
-        Text(
-            text = emotionEmojiMap[emotion.lowercase()] ?: "😐",
-            style = TextStyle(
-                fontSize = 64.sp, // Increased size (adjust as needed)
-                lineHeight = 64.sp
-            ),
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 16.dp)
-                .wrapContentWidth(Alignment.CenterHorizontally)
+                .padding(vertical = 16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            when (deviceState) {
+                DeviceState.CONNECTING, DeviceState.STARTING -> {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(64.dp), // 与emoji大小匹配
+                        strokeWidth = 4.dp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                else -> {
+                    Text(
+                        text = emotionEmojiMap[emotion.lowercase()] ?: "😐",
+                        style = TextStyle(
+                            fontSize = 64.sp,
+                            lineHeight = 64.sp
+                        )
+                    )
+                }
+            }
+        }
+
+        // Device State Text
+        Text(
+            text = deviceState.name.lowercase()
+                .replaceFirstChar { it.uppercase() },
+            style = MaterialTheme.typography.bodySmall,
+            color = when (deviceState) {
+                DeviceState.FATAL_ERROR -> MaterialTheme.colorScheme.error
+                else -> MaterialTheme.colorScheme.onSurface
+            },
+            modifier = Modifier.padding(bottom = 8.dp)
         )
+
         LazyColumn(
             modifier = Modifier
                 .weight(1f),
@@ -79,7 +112,7 @@ fun ChatScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(messages.reversed()) { message -> // Reverse to show newest at bottom
+            items(messages.reversed()) { message ->
                 ChatMessageItem(message)
             }
         }
