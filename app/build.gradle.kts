@@ -9,12 +9,12 @@ plugins {
 
 android {
     namespace = "info.dourok.voicebot"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "info.dourok.voicebot"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -84,8 +84,7 @@ dependencies {
     implementation(libs.hilt.android)
     kapt(libs.hilt.android.compiler)
 
-    implementation(libs.org.eclipse.paho.client.mqttv3)
-    implementation(libs.org.eclipse.paho.android.service)
+    implementation(libs.paho.mqtt.android)
 
     testImplementation(kotlin("test"))
     testImplementation(libs.json)

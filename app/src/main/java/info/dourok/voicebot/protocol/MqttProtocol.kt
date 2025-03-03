@@ -3,8 +3,8 @@ package info.dourok.voicebot.protocol
 import android.content.Context
 import android.util.Log
 import info.dourok.voicebot.data.model.MqttConfig
+import info.mqtt.android.service.MqttAndroidClient
 import kotlinx.coroutines.*
-import org.eclipse.paho.android.service.MqttAndroidClient
 import org.eclipse.paho.client.mqttv3.*
 import org.json.JSONObject
 import java.net.DatagramPacket
@@ -24,7 +24,7 @@ class MqttProtocol(
     private var udpClient: UdpClient? = null
     private val channelMutex = Any()
 
-    private var endpoint: String = mqttConfig.endpoint
+    private var endpoint: String = "tcp://${mqttConfig.endpoint}"
     private var clientId: String = mqttConfig.clientId
     private var username: String = mqttConfig.username
     private var password: String = mqttConfig.password

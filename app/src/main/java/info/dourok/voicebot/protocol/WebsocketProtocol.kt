@@ -35,7 +35,7 @@ class WebsocketProtocol(private val deviceInfo: DeviceInfo,
     }
 
     override suspend fun sendAudio(data: ByteArray) {
-        Log.i(TAG, "Sending audio: ${data.size}")
+        // Log.i(TAG, "Sending audio: ${data.size}")
         websocket?.run {
             send(ByteString.of(*data))
         } ?: Log.e(TAG, "WebSocket is null")
@@ -113,7 +113,7 @@ class WebsocketProtocol(private val deviceInfo: DeviceInfo,
             }
 
             override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
-                Log.i(TAG, "WebSocket binary message: ${bytes.size}")
+                // Log.i(TAG, "WebSocket binary message: ${bytes.size}")
                 scope.launch {
                     incomingAudioFlow.emit(bytes.toByteArray())
                 }

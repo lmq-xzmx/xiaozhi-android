@@ -57,7 +57,7 @@ class ChatViewMode @Inject constructor(
     var recorder: AudioRecorder? = null
     var player: OpusStreamPlayer? = null
     var aborted: Boolean = false
-    var keepListening: Boolean = false
+    var keepListening: Boolean = true
     val deviceStateFlow = MutableStateFlow(DeviceState.UNKNOWN)
     var deviceState: DeviceState
         get() = deviceStateFlow.value
@@ -96,6 +96,7 @@ class ChatViewMode @Inject constructor(
                 recorder = AudioRecorder(sampleRate, channels, frameSizeMs)
                 val audioFlow = recorder?.startRecording()
                 val opusFlow = audioFlow?.map { encoder?.encode(it) }
+                deviceState = DeviceState.LISTENING
                 opusFlow?.collect {
                     it?.let { protocol.sendAudio(it) }
                 }
