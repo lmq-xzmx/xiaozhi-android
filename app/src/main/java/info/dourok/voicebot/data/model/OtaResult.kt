@@ -47,14 +47,14 @@ fun fromJsonToOtaResult(json: JSONObject): OtaResult {
 
 data class ServerTime(
     val timestamp: Long,
-    val timezone: String,
+    val timezone: String?,
     val timezoneOffset: Int
 )
 
 fun fromJsonToServerTime(json: JSONObject): ServerTime {
     return ServerTime(
         timestamp = json.getLong("timestamp"),
-        timezone = json.getString("timezone"),
+        timezone = json.optString("timezone", null),
         timezoneOffset = json.getInt("timezone_offset")
     )
 }
