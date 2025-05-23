@@ -186,8 +186,7 @@ object DummyDataGenerator {
     }
 
     private fun generateMacAddress(): String {
-        return List(6) { Random.nextInt(0x00, 0xFF) }
-            .joinToString(":") { String.format("%02x", it) }
+        return  "00:11:22:33:44:55" 
     }
 
     private fun generateRandomSha256(): String {

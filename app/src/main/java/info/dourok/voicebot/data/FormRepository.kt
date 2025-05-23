@@ -5,6 +5,7 @@ import info.dourok.voicebot.Ota
 import info.dourok.voicebot.data.model.OtaResult
 import info.dourok.voicebot.data.model.ServerFormData
 import info.dourok.voicebot.data.model.ServerType
+import info.dourok.voicebot.data.model.TransportType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -37,14 +38,23 @@ class FormRepositoryImpl @Inject constructor(
         if(formData.serverType == ServerType.XiaoZhi) {
             settingsRepository.transportType = formData.xiaoZhiConfig.transportType
             settingsRepository.webSocketUrl = formData.xiaoZhiConfig.webSocketUrl
-            ota.checkVersion(formData.xiaoZhiConfig.qtaUrl)
-            resultFlow.value = FormResult.XiaoZhiResult(ota.otaResult)
-            settingsRepository.mqttConfig = ota.otaResult?.mqttConfig
+            
+            // 根据传输类型决定是否需要OTA检查
+            if (formData.xiaoZhiConfig.transportType == TransportType.MQTT) {
+                // MQTT模式需要OTA检查来获取MQTT配置
+                ota.checkVersion(formData.xiaoZhiConfig.qtaUrl)
+                settingsRepository.mqttConfig = ota.otaResult?.mqttConfig
+                resultFlow.value = FormResult.XiaoZhiResult(ota.otaResult)
+            } else {
+                // WebSockets模式下不需要OTA检查，直接使用WebSocket URL
+                settingsRepository.mqttConfig = null
+                resultFlow.value = FormResult.XiaoZhiResult(null)
+            }
         } else {
             settingsRepository.transportType = formData.selfHostConfig.transportType
             settingsRepository.webSocketUrl = formData.selfHostConfig.webSocketUrl
+            settingsRepository.mqttConfig = null  // SelfHost模式固定为WebSockets，清除MQTT配置
             resultFlow.value = FormResult.SelfHostResult
-            //TODO
         }
         print(ota.deviceInfo)
     }

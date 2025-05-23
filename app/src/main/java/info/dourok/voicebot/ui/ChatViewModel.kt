@@ -44,11 +44,19 @@ class ChatViewMode @Inject constructor(
     private val protocol: Protocol = when (settings.transportType) {
 
         TransportType.MQTT -> {
-            MqttProtocol(context, settings.mqttConfig!!)
+            val mqttConfig = settings.mqttConfig
+            if (mqttConfig == null) {
+                throw IllegalStateException("MQTT配置未初始化，请先完成服务器配置并执行OTA检查")
+            }
+            MqttProtocol(context, mqttConfig)
         }
 
         TransportType.WebSockets -> {
-            WebsocketProtocol(deviceInfo, settings.webSocketUrl!!, "test-token")
+            val webSocketUrl = settings.webSocketUrl
+            if (webSocketUrl.isNullOrEmpty()) {
+                throw IllegalStateException("WebSocket URL未配置，请先完成服务器配置")
+            }
+            WebsocketProtocol(deviceInfo, webSocketUrl, "test-token")
         }
     }
 
@@ -96,16 +104,48 @@ class ChatViewMode @Inject constructor(
             var i = 0
             // dummy opus audio bytearray
             launch {
+                Log.i(TAG, "Starting audio encoding and recording setup...")
                 val sampleRate = 16000
                 val channels = 1
                 val frameSizeMs = 60
-                encoder = OpusEncoder(sampleRate, channels, frameSizeMs)
-                recorder = AudioRecorder(sampleRate, channels, frameSizeMs)
-                val audioFlow = recorder?.startRecording()
-                val opusFlow = audioFlow?.map { encoder?.encode(it) }
-                deviceState = DeviceState.LISTENING
-                opusFlow?.collect {
-                    it?.let { protocol.sendAudio(it) }
+                
+                try {
+                    encoder = OpusEncoder(sampleRate, channels, frameSizeMs)
+                    Log.i(TAG, "OpusEncoder created successfully")
+                    
+                    recorder = AudioRecorder(sampleRate, channels, frameSizeMs)
+                    Log.i(TAG, "AudioRecorder created successfully")
+                    
+                    val audioFlow = recorder?.startRecording()
+                    Log.i(TAG, "Audio recording flow started")
+                    
+                    val opusFlow = audioFlow?.map { 
+                        Log.d(TAG, "Encoding audio frame: ${it.size} bytes")
+                        encoder?.encode(it) 
+                    }
+                    
+                    deviceState = DeviceState.LISTENING
+                    Log.i(TAG, "Device state set to LISTENING, starting audio collection...")
+                    
+                    var audioFrameCount = 0
+                    opusFlow?.collect { encodedData ->
+                        audioFrameCount++
+                        if (encodedData != null) {
+                            Log.d(TAG, "Sending audio frame #$audioFrameCount: ${encodedData.size} bytes")
+                            protocol.sendAudio(encodedData)
+                            
+                            // 每50帧打印一次状态
+                            if (audioFrameCount % 50 == 0) {
+                                Log.i(TAG, "Audio frames sent: $audioFrameCount")
+                            }
+                        } else {
+                            Log.w(TAG, "Opus encoding returned null for frame #$audioFrameCount")
+                        }
+                    }
+                    Log.w(TAG, "Audio collection ended unexpectedly")
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error in audio setup: ${e.message}", e)
+                    deviceState = DeviceState.FATAL_ERROR
                 }
             }
 
