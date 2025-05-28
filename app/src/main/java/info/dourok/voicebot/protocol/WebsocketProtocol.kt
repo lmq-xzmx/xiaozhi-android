@@ -32,6 +32,14 @@ class WebsocketProtocol(private val deviceInfo: DeviceInfo,
 
     override suspend fun start() {
         Log.i(TAG, "WebSocket protocol start() called")
+        // 自动建立WebSocket连接
+        Log.i(TAG, "正在建立WebSocket连接...")
+        val success = openAudioChannel()
+        if (success) {
+            Log.i(TAG, "WebSocket连接建立成功")
+        } else {
+            Log.e(TAG, "WebSocket连接建立失败")
+        }
     }
 
     override suspend fun sendAudio(data: ByteArray) {

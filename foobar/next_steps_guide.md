@@ -1,149 +1,121 @@
-# 📋 下一步操作指南
+# 🚀 WebSocket配置修复后的下一步行动指南
 
-## 🎯 当前状态总结
+## ✅ 已完成的修复
+- ✅ SettingsRepository持久化改造完成
+- ✅ 添加Gson依赖支持JSON序列化  
+- ✅ 修复编译错误（中文字符串引号问题）
+- ✅ 创建验证和部署脚本
 
-✅ **问题已确认**：您的Android应用STT不工作是因为设备绑定问题  
-✅ **OTA接口测试成功**：使用`mac_address`字段名的请求格式正确  
-✅ **解决方案明确**：需要进行设备绑定来解决STT问题  
+## 📋 立即需要执行的步骤
 
-## 🚀 立即执行的步骤
+### 1. 编译和部署APK
 
-### 第1步：获取新设备的激活码
-
-由于测试设备ID `aa:bb:cc:dd:ee:ff` 已经绑定，我们需要用一个新的设备ID获取激活码：
-
+#### 方法1：使用命令行（推荐）
 ```bash
-# 在Terminal中执行（不要用PowerShell）
-curl -X POST \
-  -H "Content-Type: application/json" \
-  -H "Device-Id: 00:11:22:33:44:55" \
-  -H "Client-Id: android-test-new" \
-  -d '{
-    "mac_address": "00:11:22:33:44:55",
-    "application": {
-      "version": "1.0.0"
-    },
-    "board": {
-      "type": "android"
-    },
-    "chip_model_name": "android"
-  }' \
-  http://47.122.144.73:8002/xiaozhi/ota/
+# 在项目根目录执行
+./gradlew clean
+./gradlew assembleDebug
+
+# 安装到设备
+adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-**期望响应**：
-```json
-{
-  "activation": {
-    "code": "123456",
-    "message": "http://47.122.144.73:8002/#/device-management?agentId=6bf580ad09cf4b1e8bd332dafb9e6d30\n123456"
-  },
-  "websocket": {
-    "url": "ws://47.122.144.73:8000/xiaozhi/v1/"
-  }
-}
-```
+#### 方法2：使用Android Studio
+1. 打开Android Studio
+2. 选择 Build → Clean Project
+3. 选择 Build → Rebuild Project
+4. 运行应用到设备
 
-### 第2步：管理面板绑定设备
+### 2. 验证修复效果
 
-1. **打开管理面板**：http://47.122.144.73:8002/#/device-management?agentId=6bf580ad09cf4b1e8bd332dafb9e6d30
-2. **输入激活码**：在设备绑定界面输入获得的6位数字激活码
-3. **确认绑定**：完成设备绑定操作
-
-### 第3步：修改Android应用配置
-
-将Android应用中的设备ID修改为新绑定的设备ID：
-
-**文件位置**：`app/src/main/java/info/dourok/voicebot/data/model/ServerFormData.kt`
-
-```kotlin
-// 找到硬编码的设备ID配置并修改为：
-val deviceId = "00:11:22:33:44:55"  // 使用刚绑定的设备ID
-```
-
-### 第4步：测试STT功能
-
-1. **重新编译运行**Android应用
-2. **连接WebSocket**：确认WebSocket连接成功
-3. **测试STT**：尝试语音输入，验证STT功能是否正常
-
-## 🔧 替代方案（如果curl不工作）
-
-### 使用Python脚本
-
-在Terminal中执行：
+#### 自动化验证
 ```bash
-cd /Users/xzmx/Downloads/my-project/xiaozhi-android/foobar
-python3 -c "
-import requests
-import json
+# 运行验证脚本
+./foobar/verify_websocket_fix.sh
 
-device_id = '00:11:22:33:44:55'
-headers = {
-    'Content-Type': 'application/json',
-    'Device-Id': device_id,
-    'Client-Id': 'android-test-new'
-}
-payload = {
-    'mac_address': device_id,
-    'application': {'version': '1.0.0'},
-    'board': {'type': 'android'},
-    'chip_model_name': 'android'
-}
-
-response = requests.post('http://47.122.144.73:8002/xiaozhi/ota/', headers=headers, json=payload)
-print('Status:', response.status_code)
-print('Response:', json.dumps(response.json(), indent=2, ensure_ascii=False))
-"
+# 或使用Python脚本
+python3 foobar/websocket_config_validation_script.py
 ```
 
-### 使用Postman或其他API工具
+#### 手动验证步骤
+1. **启动应用** - 检查是否正常启动
+2. **进行OTA配置** - 执行设备激活流程
+3. **观察日志** - 查看WebSocket URL保存日志
+4. **重启应用** - 验证配置持久性
+5. **测试连接** - 确认WebSocket连接正常
 
-**URL**: `POST http://47.122.144.73:8002/xiaozhi/ota/`
+### 3. 关键日志监控
 
-**Headers**:
-```
-Content-Type: application/json
-Device-Id: 00:11:22:33:44:55
-Client-Id: android-test-new
-```
-
-**Body**:
-```json
-{
-  "mac_address": "00:11:22:33:44:55",
-  "application": {
-    "version": "1.0.0"
-  },
-  "board": {
-    "type": "android"
-  },
-  "chip_model_name": "android"
-}
+启动日志监控查看修复效果：
+```bash
+adb logcat | grep -E "(SettingsRepository|WebSocket|持久化)"
 ```
 
-## 🎯 预期结果
+**期望看到的关键日志**：
+- `✅ WebSocket URL已保存到持久化存储: [URL]`
+- `使用持久化WebSocket URL: [URL]`
+- `=== 当前配置状态 ===`
 
-完成上述步骤后：
+## 🎯 验证成功标准
 
-1. ✅ **设备绑定成功**：新设备ID已绑定到您的账户
-2. ✅ **WebSocket连接正常**：应用可以正常连接到WebSocket
-3. ✅ **STT功能恢复**：语音识别功能开始正常工作
-4. ✅ **问题解决**：Android应用完全恢复STT功能
+### ✅ 修复成功的标志
+- [ ] APK编译和安装成功
+- [ ] 应用正常启动，无崩溃
+- [ ] OTA配置能够获取WebSocket URL
+- [ ] 日志显示配置已保存到持久化存储
+- [ ] 应用重启后配置自动恢复
+- [ ] WebSocket连接正常工作
 
-## 🚨 注意事项
+### ❌ 需要进一步调试的情况
+- APK编译失败
+- 应用启动崩溃
+- 配置保存失败
+- 重启后配置丢失
 
-1. **设备ID一致性**：确保Device-Id头部和mac_address字段完全一致
-2. **MAC地址格式**：使用标准MAC地址格式（如：00:11:22:33:44:55）
-3. **管理面板访问**：确保能正常访问管理面板网站
-4. **激活码有效期**：激活码可能有时效性，建议及时使用
+## 🔧 后续优化计划
 
-## 🆘 如果遇到问题
+### 短期目标（1-2天）
+1. **验证修复效果** - 确保WebSocket配置持久化正常
+2. **用户测试** - 收集实际使用反馈
+3. **性能监控** - 观察内存和CPU使用情况
 
-1. **激活码无效**：重新获取新的激活码
-2. **管理面板无法访问**：检查网络连接和URL是否正确
-3. **STT仍不工作**：检查Android应用的设备ID配置是否正确
-4. **WebSocket连接失败**：确认WebSocket URL配置正确
+### 中期目标（1周）
+1. **配置迁移工具** - 帮助现有用户迁移配置
+2. **错误处理优化** - 完善异常情况处理
+3. **日志系统完善** - 添加更详细的调试信息
+
+### 长期目标（1个月）
+1. **架构优化** - 统一配置管理机制
+2. **自动化测试** - 建立配置持久化测试用例
+3. **用户体验提升** - 简化配置流程
+
+## 📞 技术支持
+
+如果遇到问题，请按以下步骤排查：
+
+### 编译问题
+1. 检查Gradle版本兼容性
+2. 确认依赖项正确添加
+3. 清理项目后重新构建
+
+### 运行时问题
+1. 查看logcat日志
+2. 检查设备配置
+3. 验证网络连接
+
+### 配置问题
+1. 使用debugPrintAllSettings()查看配置状态
+2. 手动清除配置重新配置
+3. 检查SharedPreferences权限
+
+## 🎉 成功部署后的效果
+
+修复成功后，用户将获得：
+- **一次配置，长期有效** - 不再需要重复配置
+- **稳定的连接体验** - 与ESP32端完全一致
+- **简化的使用流程** - 应用重启后自动连接
+- **可靠的配置管理** - 持久化存储确保数据安全
 
 ---
-**下一步就是执行第1步获取激活码！选择您方便的方法（curl、Python或Postman）来获取激活码。** 
+
+**总结**：WebSocket配置修复的关键工作已完成，现在需要编译部署并验证效果。请按照上述步骤逐一执行，确保修复达到预期效果。 

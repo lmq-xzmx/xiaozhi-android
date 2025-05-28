@@ -1,0 +1,8 @@
+启动修复后的小智测试服务器...
+OTA端点: http://192.168.0.129:8003/xiaozhi/ota/
+特点: 只返回激活码，不返回WebSocket配置
+用途: 测试Android应用的绑定流程
+ * Serving Flask app 'fixed_test_server'
+ * Debug mode: on
+Address already in use
+Port 8003 is in use by another program. Either identify and stop that program, or start the server with a different port.

@@ -29,15 +29,37 @@ import org.json.JSONObject
 
 
 data class OtaResult(
-    val mqttConfig: MqttConfig,
+    val mqttConfig: MqttConfig?,
+    val websocketConfig: WebSocketConfig?,
     val activation: Activation?,
     val serverTime: ServerTime?,
     val firmware: Firmware?
+) {
+    val needsActivation: Boolean get() = activation != null
+    
+    val isActivated: Boolean get() = websocketConfig != null && activation == null
+    
+    val activationCode: String? get() = activation?.code
+    
+    val websocketUrl: String? get() = websocketConfig?.url
+}
+
+data class WebSocketConfig(
+    val url: String,
+    val token: String? = null
 )
+
+fun fromJsonToWebSocketConfig(json: JSONObject): WebSocketConfig {
+    return WebSocketConfig(
+        url = json.getString("url"),
+        token = json.optString("token", null)
+    )
+}
 
 fun fromJsonToOtaResult(json: JSONObject): OtaResult {
     return OtaResult(
-        mqttConfig = fromJsonToMqttConfig(json.getJSONObject("mqtt")),
+        mqttConfig = json.optJSONObject("mqtt")?.let { fromJsonToMqttConfig(it) },
+        websocketConfig = json.optJSONObject("websocket")?.let { fromJsonToWebSocketConfig(it) },
         activation = json.optJSONObject("activation")?.let { fromJsonToActivation(it) },
         serverTime = json.optJSONObject("server_time")?.let { fromJsonToServerTime(it) },
         firmware = json.optJSONObject("firmware")?.let { fromJsonToFirmware(it) }
@@ -76,7 +98,13 @@ fun fromJsonToFirmware(json: JSONObject): Firmware {
 data class Activation(
     val code: String,
     val message: String
-)
+) {
+    val frontendUrl: String? get() {
+        val lines = message.split("\n")
+        return lines.firstOrNull { it.startsWith("http") }
+            ?: "http://47.122.144.73:8002/#/home"
+    }
+}
 
 fun fromJsonToActivation(json: JSONObject): Activation {
     return Activation(

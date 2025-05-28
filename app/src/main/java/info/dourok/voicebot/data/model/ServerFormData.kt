@@ -23,7 +23,7 @@ data class SelfHostConfig(
 )
 
 enum class TransportType {
-    MQTT, WebSockets
+    None, MQTT, WebSockets
 }
 
 // :feature:form/data/model/ValidationResult.kt

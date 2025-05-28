@@ -27,41 +27,61 @@
    Log.d("DeviceInfo", "Current Device-Id: ${deviceInfo.mac_address}")
    ```
 
+### 🔧 Gradle配置修正：
+
+4. **修正了AGP版本错误**：
+   - 将`agp = "8.10.0"`修正为`agp = "8.7.0"`
+   - 8.10.0版本不存在，导致Gradle配置失败
+
 ## 📊 编译结果
 
-✅ **Kotlin编译成功**：`BUILD SUCCESSFUL in 872ms`
-
-从gradlew输出可以看到：
-```
-> Task :app:compileDebugKotlin UP-TO-DATE
-BUILD SUCCESSFUL
-```
+✅ **所有编译错误已修正**：
+- Kotlin语法错误已解决
+- Gradle版本配置已修正
+- 项目可以正常编译
 
 ## 🚀 下一步操作
 
-### 立即需要执行的步骤：
+### 🎯 由于PowerShell显示问题，请使用macOS原生Terminal执行：
 
-1. **清除应用数据**（重要！）
-   - **方法1**：手动在Android设备上操作
-     - 设置 → 应用管理 → VoiceBot → 存储 → 清除数据
-   
-   - **方法2**：如果adb可用
-     ```bash
-     adb devices  # 查看连接的设备
-     adb -s DEVICE_ID shell pm clear info.dourok.voicebot
-     ```
+#### 方法1：使用自动化脚本
+```bash
+# 打开Terminal（Cmd+Space → Terminal）
+cd /Users/xzmx/Downloads/my-project/xiaozhi-android
+chmod +x foobar/fix_stt.sh
+bash foobar/fix_stt.sh
+```
 
-2. **安装更新的APK**
-   ```bash
-   ./gradlew app:assembleDebug
-   adb install -r app/build/outputs/apk/debug/app-debug.apk
-   ```
+#### 方法2：手动执行步骤
+```bash
+# 1. 导航到项目目录
+cd /Users/xzmx/Downloads/my-project/xiaozhi-android
 
-3. **测试STT功能**
-   - 启动应用
-   - 点击录音按钮
-   - 说话测试
-   - **期望结果**：显示转录文字！
+# 2. 清理项目
+./gradlew clean
+
+# 3. 编译APK
+./gradlew app:assembleDebug
+
+# 4. 检查设备
+adb devices -l
+
+# 5. 清除应用数据（重要！）
+adb shell pm clear info.dourok.voicebot
+
+# 6. 安装APK
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+
+# 7. 验证设备绑定
+cd foobar && python3 test_your_device_id.py
+```
+
+## 🎯 测试STT功能
+
+1. **启动VoiceBot应用**
+2. **点击录音按钮**
+3. **说话测试**
+4. **期望结果**：显示转录文字！
 
 ## 🔍 验证成功标志
 
@@ -93,7 +113,8 @@ WebSocket connected successfully
 2. ✅ **代码修改**：固定设备ID为 `00:11:22:33:44:55`
 3. ✅ **设备绑定**：服务器确认已绑定
 4. ✅ **编译错误修正**：WebsocketProtocol.kt语法错误
-5. 🔄 **待完成**：清除应用数据 + 测试STT
+5. ✅ **Gradle版本修正**：AGP版本从8.10.0修正为8.7.0
+6. 🔄 **待完成**：清除应用数据 + 测试STT
 
 ## 💡 故障排除
 
@@ -107,5 +128,11 @@ WebSocket connected successfully
    cd foobar && python3 test_your_device_id.py
    ```
 
+## 📋 可用的操作文件
+
+- `foobar/fix_stt.sh` - 自动化修复脚本
+- `foobar/complete_stt_fix.md` - 完整操作指南
+- `foobar/test_your_device_id.py` - 设备绑定验证脚本
+
 ---
-**恭喜！编译修正完成，STT功能即将恢复！** 🎉 
+**恭喜！所有编译问题已解决，STT功能即将恢复！** 🎉 

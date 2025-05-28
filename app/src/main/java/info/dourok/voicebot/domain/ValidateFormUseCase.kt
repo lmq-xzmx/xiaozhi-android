@@ -25,6 +25,9 @@ class ValidateFormUseCase @Inject constructor() {
                 val transportType = formData.xiaoZhiConfig.transportType
                 
                 when (transportType) {
+                    TransportType.None -> {
+                        errors["xiaoZhiConfig"] = "请选择传输类型"
+                    }
                     TransportType.WebSockets -> {
                         if (!url.startsWith("ws://") && !url.startsWith("wss://")) {
                             errors["xiaoZhiConfig"] = "WebSocket传输类型需要ws://或wss://协议的URL"

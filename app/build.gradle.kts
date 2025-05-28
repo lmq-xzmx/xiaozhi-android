@@ -79,12 +79,28 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation(libs.okhttp)
-    implementation(libs.opus.v131)
+//    implementation(libs.opus.v131)
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.hilt.android)
     kapt(libs.hilt.android.compiler)
 
     implementation(libs.paho.mqtt.android)
+
+    // 新增依赖项 - DataStore
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
+    
+    // 新增依赖项 - ViewModel和Lifecycle
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+    
+    // 新增依赖项 - Compose状态管理
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
+    
+    // 新增依赖项 - Coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+
+    // WebSocket配置修复 - JSON序列化支持
+    implementation("com.google.code.gson:gson:2.10.1")
 
     testImplementation(kotlin("test"))
     testImplementation(libs.json)
