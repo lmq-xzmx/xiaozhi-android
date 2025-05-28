@@ -123,11 +123,11 @@ fun ServerConfigSection(
                     supportingText = { errors["xiaoZhiWebSocketUrl"]?.let { Text(it) } }
                 )
                 OutlinedTextField(
-                    value = xiaoZhiConfig.qtaUrl,
-                    onValueChange = { onXiaoZhiUpdate(xiaoZhiConfig.copy(qtaUrl = it)) },
-                    label = { Text("QTA URL") },
-                    isError = errors.containsKey("qtaUrl"),
-                    supportingText = { errors["qtaUrl"]?.let { Text(it) } }
+                    value = xiaoZhiConfig.otaUrl,
+                    onValueChange = { onXiaoZhiUpdate(xiaoZhiConfig.copy(otaUrl = it)) },
+                    label = { Text("OTA URL") },
+                    isError = errors.containsKey("otaUrl"),
+                    supportingText = { errors["otaUrl"]?.let { Text(it) } }
                 )
                 Text("传输类型", style = MaterialTheme.typography.bodyLarge)
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {

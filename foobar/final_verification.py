@@ -1,108 +1,122 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-最终验证：小智Android应用完整功能测试
+最终验证脚本 - 检查编译问题并提供解决方案
 """
 
+import os
 import subprocess
-import time
+import sys
 
-def final_verification():
-    device_id = "SOZ95PIFVS5H6PIZ"
-    package_name = "info.dourok.voicebot"
+def check_kotlin_files():
+    """检查关键的Kotlin文件是否存在并正确定义"""
+    files_to_check = [
+        "app/src/main/java/info/dourok/voicebot/data/model/MqttConfig.kt",
+        "app/src/main/java/info/dourok/voicebot/data/model/TransportType.kt",
+        "app/src/main/java/info/dourok/voicebot/data/SettingsRepository.kt",
+        "app/src/main/java/info/dourok/voicebot/data/FormRepository.kt",
+        "app/src/main/java/info/dourok/voicebot/domain/ValidateFormUseCase.kt",
+        "app/src/main/java/info/dourok/voicebot/ui/ServerFormScreen.kt",
+        "app/src/main/java/info/dourok/voicebot/Ota.kt"
+    ]
     
-    print("🎉 小智Android应用最终验证")
+    missing_files = []
+    for file_path in files_to_check:
+        if not os.path.exists(file_path):
+            missing_files.append(file_path)
+            
+    if missing_files:
+        print("❌ 缺少关键文件:")
+        for file in missing_files:
+            print(f"   - {file}")
+        return False
+    else:
+        print("✅ 所有关键文件存在")
+        return True
+
+def check_cmake_issue():
+    """检查CMake问题"""
+    print("\n🔧 检查CMake配置...")
+    
+    # 删除CMake缓存
+    cmake_dirs = [
+        "app/.cxx",
+        ".gradle/8.10.2",
+        ".gradle/8.11.1"
+    ]
+    
+    for dir_path in cmake_dirs:
+        if os.path.exists(dir_path):
+            print(f"   删除 {dir_path}")
+            subprocess.run(["rm", "-rf", dir_path], capture_output=True)
+    
+    print("✅ CMake缓存已清理")
+
+def check_compilation():
+    """检查编译状态"""
+    print("\n📦 检查编译...")
+    
+    # 简单的语法检查
+    try:
+        result = subprocess.run(
+            ["./gradlew", "compileDebugKotlin", "--stacktrace"],
+            capture_output=True,
+            text=True,
+            timeout=120
+        )
+        
+        if result.returncode == 0:
+            print("✅ Kotlin编译成功")
+            return True
+        else:
+            print("❌ Kotlin编译失败:")
+            print(result.stderr)
+            return False
+            
+    except subprocess.TimeoutExpired:
+        print("⏰ 编译超时")
+        return False
+    except Exception as e:
+        print(f"❌ 编译检查失败: {e}")
+        return False
+
+def main():
+    print("🎯 最终验证 - OTA配置升级完成检查")
     print("=" * 50)
     
-    # 1. 应用启动验证
-    print("1. 应用启动状态验证...")
-    time.sleep(3)
+    # 步骤1: 检查文件
+    if not check_kotlin_files():
+        print("\n❌ 请先确保所有必要文件存在")
+        return
     
-    # 检查应用是否运行
-    result = subprocess.run(
-        ["adb", "-s", device_id, "shell", "dumpsys", "activity", "activities", 
-         "|", "grep", package_name],
-        capture_output=True,
-        text=True,
-        shell=True
-    )
+    # 步骤2: 清理CMake
+    check_cmake_issue()
     
-    if package_name in result.stdout:
-        print("   ✅ 应用正在运行")
+    # 步骤3: 检查编译
+    compilation_ok = check_compilation()
+    
+    print("\n" + "=" * 50)
+    print("📋 编译手动指令:")
+    print()
+    print("1. 清理项目:")
+    print("   ./gradlew clean")
+    print()
+    print("2. 编译APK:")
+    print("   ./gradlew assembleDebug")
+    print()
+    print("3. 安装APK:")
+    print("   adb -s SOZ95PIFVS5H6PIZ install app/build/outputs/apk/debug/app-debug.apk")
+    print()
+    
+    if compilation_ok:
+        print("🎉 编译验证成功！可以直接安装APK。")
     else:
-        print("   ❌ 应用未运行")
-    
-    # 2. 关键日志检查
-    print("\n2. 关键功能日志检查...")
-    result = subprocess.run(
-        ["adb", "-s", device_id, "logcat", "-d", "-v", "brief"],
-        capture_output=True,
-        text=True
-    )
-    
-    logs = result.stdout.split('\n')
-    
-    # 检查关键指标
-    websocket_connected = any("WebSocket connected successfully" in line for line in logs)
-    device_ready = any("ChatViewModel 初始化完成" in line for line in logs)
-    binding_success = any("设备已绑定成功" in line for line in logs)
-    
-    print(f"   🌐 WebSocket连接: {'✅' if websocket_connected else '❌'}")
-    print(f"   📱 设备初始化: {'✅' if device_ready else '❌'}")
-    print(f"   🔗 设备绑定: {'✅' if binding_success else '❌'}")
-    
-    # 3. UI状态验证
-    print("\n3. UI状态验证建议:")
-    print("   请在设备上检查以下内容：")
-    print("   📱 应用显示: ✅ 就绪 (而不是 Idle)")
-    print("   🎛️ 操作按钮: '开始监听' 按钮可见")
-    print("   😊 表情显示: 显示中性表情")
-    print("   🎨 设备配置: 显示完整的OTA和WebSocket信息")
-    
-    # 4. 功能测试指南
-    print("\n4. 功能测试步骤:")
-    print("   步骤1: 点击 '开始监听' 按钮")
-    print("   步骤2: 观察状态变为 '🎤 监听中'")
-    print("   步骤3: 对着手机说话")
-    print("   步骤4: 观察是否有语音识别结果")
-    print("   步骤5: 检查是否收到AI回复")
-    
-    # 5. 设备配置信息验证
-    print("\n5. 设备配置信息验证:")
-    print("   进入设备配置页面，应该显示：")
-    print("   📊 设备信息: Android版本、制造商、型号")
-    print("   🌐 OTA信息: 服务器地址、端点、绑定状态")
-    print("   🔌 WebSocket信息: URL、连接状态、协议版本")
-    print("   🚪 端口信息: HTTP(8002)、WebSocket(8000)")
-    
-    # 6. 错误排除
-    print("\n6. 如果仍有问题，请检查:")
-    
-    # 检查最近的错误日志
-    recent_errors = [line for line in logs[-100:] if any(keyword in line.lower() 
-                    for keyword in ['error', 'exception', 'failed', 'timeout'])]
-    
-    if recent_errors:
-        print("   ⚠️ 发现最近的错误日志:")
-        for error in recent_errors[-5:]:  # 最后5个错误
-            print(f"   📋 {error.strip()}")
-    else:
-        print("   ✅ 未发现明显错误")
-    
-    # 7. 网络连接验证
-    print("\n7. 网络连接验证:")
-    print("   如果语音功能不工作，请检查:")
-    print("   🌐 WiFi连接是否正常")
-    print("   🚪 是否可以访问 47.122.144.73:8000")
-    print("   🎤 是否授予了录音权限")
-    print("   🔊 是否授予了播放音频权限")
-    
-    print("\n🎯 总结:")
-    print("✅ 应用不再显示 'Idle'，而是显示 '✅ 就绪'")
-    print("✅ 提供了用户友好的操作按钮")
-    print("✅ 完整显示所有连接信息")
-    print("✅ WebSocket连接自动建立")
-    print("🎤 现在用户可以开始语音交互了！")
+        print("⚠️ 存在编译问题，请手动执行上述命令进行编译。")
+        
+    print("\n💡 如果遇到CMake问题，可以:")
+    print("   - 删除 .gradle 目录: rm -rf .gradle")
+    print("   - 删除 app/.cxx 目录: rm -rf app/.cxx")
+    print("   - 重新运行: ./gradlew clean && ./gradlew assembleDebug")
 
 if __name__ == "__main__":
-    final_verification() 
+    main() 

@@ -2,10 +2,12 @@ package info.dourok.voicebot.data
 
 import android.content.Context
 import android.content.SharedPreferences
-import com.google.gson.Gson
 import dagger.hilt.android.qualifiers.ApplicationContext
 import info.dourok.voicebot.data.model.MqttConfig
 import info.dourok.voicebot.data.model.TransportType
+import info.dourok.voicebot.data.model.fromJsonToMqttConfig
+import info.dourok.voicebot.data.model.toJson
+import org.json.JSONObject
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -13,6 +15,11 @@ interface SettingsRepository {
     var transportType: TransportType
     var mqttConfig: MqttConfig?
     var webSocketUrl: String?
+    
+    // 新增OTA配置支持
+    var otaUrl: String?
+    var deviceId: String?
+    var isUsingOtaConfig: Boolean
 }
 
 @Singleton
@@ -23,12 +30,13 @@ class SettingsRepositoryImpl @Inject constructor(
     private val sharedPrefs: SharedPreferences = 
         context.getSharedPreferences("xiaozhi_settings", Context.MODE_PRIVATE)
     
-    private val gson = Gson()
-    
     companion object {
         private const val KEY_TRANSPORT_TYPE = "transport_type"
         private const val KEY_WEBSOCKET_URL = "websocket_url"
         private const val KEY_MQTT_CONFIG = "mqtt_config"
+        private const val KEY_OTA_URL = "ota_url"
+        private const val KEY_DEVICE_ID = "device_id"
+        private const val KEY_IS_USING_OTA_CONFIG = "is_using_ota_config"
     }
     
     override var transportType: TransportType
@@ -67,7 +75,8 @@ class SettingsRepositoryImpl @Inject constructor(
             val configJson = sharedPrefs.getString(KEY_MQTT_CONFIG, null)
             return if (configJson != null) {
                 try {
-                    gson.fromJson(configJson, MqttConfig::class.java)
+                    val jsonObject = JSONObject(configJson)
+                    fromJsonToMqttConfig(jsonObject)
                 } catch (e: Exception) {
                     android.util.Log.w("SettingsRepository", "⚠️ MQTT配置反序列化失败", e)
                     null
@@ -79,7 +88,7 @@ class SettingsRepositoryImpl @Inject constructor(
         set(value) {
             if (value != null) {
                 try {
-                    val configJson = gson.toJson(value)
+                    val configJson = value.toJson()
                     sharedPrefs.edit()
                         .putString(KEY_MQTT_CONFIG, configJson)
                         .apply()
@@ -95,22 +104,40 @@ class SettingsRepositoryImpl @Inject constructor(
             }
         }
     
-    /**
-     * 调试方法：打印当前所有配置
-     */
-    fun debugPrintAllSettings() {
-        android.util.Log.d("SettingsRepository", "=== 当前配置状态 ===")
-        android.util.Log.d("SettingsRepository", "传输类型: $transportType")
-        android.util.Log.d("SettingsRepository", "WebSocket URL: $webSocketUrl")
-        android.util.Log.d("SettingsRepository", "MQTT配置: ${if (mqttConfig != null) "已配置" else "未配置"}")
-        android.util.Log.d("SettingsRepository", "==================")
-    }
+    // OTA配置实现
+    override var otaUrl: String?
+        get() = sharedPrefs.getString(KEY_OTA_URL, "http://47.122.144.73:8002/xiaozhi/ota/")
+        set(value) {
+            if (value != null) {
+                sharedPrefs.edit()
+                    .putString(KEY_OTA_URL, value)
+                    .apply()
+            } else {
+                sharedPrefs.edit()
+                    .remove(KEY_OTA_URL)
+                    .apply()
+            }
+        }
     
-    /**
-     * 清除所有配置（用于重置）
-     */
-    fun clearAllSettings() {
-        sharedPrefs.edit().clear().apply()
-        android.util.Log.i("SettingsRepository", "�� 所有配置已清除")
-    }
+    override var deviceId: String?
+        get() = sharedPrefs.getString(KEY_DEVICE_ID, null)
+        set(value) {
+            if (value != null) {
+                sharedPrefs.edit()
+                    .putString(KEY_DEVICE_ID, value)
+                    .apply()
+            } else {
+                sharedPrefs.edit()
+                    .remove(KEY_DEVICE_ID)
+                    .apply()
+            }
+        }
+    
+    override var isUsingOtaConfig: Boolean
+        get() = sharedPrefs.getBoolean(KEY_IS_USING_OTA_CONFIG, true)
+        set(value) {
+            sharedPrefs.edit()
+                .putBoolean(KEY_IS_USING_OTA_CONFIG, value)
+                .apply()
+        }
 }

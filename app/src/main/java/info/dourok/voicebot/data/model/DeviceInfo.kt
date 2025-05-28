@@ -147,98 +147,6 @@ fun fromJsonToDeviceInfo(json: String): DeviceInfo {
 }
 
 object DummyDataGenerator {
-    
-    /**
-     * 生成设备信息，使用DeviceIdManager获取真实设备ID
-     */
-    suspend fun generate(deviceIdManager: DeviceIdManager): DeviceInfo {
-        return DeviceInfo(
-            version = 2,
-            flash_size = 8388608,
-            psram_size = 4194304,
-            minimum_free_heap_size = Random.nextInt(200000, 300000),
-            mac_address = deviceIdManager.getStableDeviceId(), // 使用真实设备ID
-            uuid = UUID.randomUUID().toString(),
-            chip_model_name = "android", // 更正确的芯片型号名称
-            chip_info = ChipInfo(
-                model = 1000 + android.os.Build.VERSION.SDK_INT, // 基于Android版本的模型号
-                cores = Runtime.getRuntime().availableProcessors(),
-                revision = 1,
-                features = 5
-            ),
-            application = Application(
-                name = "xiaozhi-android",
-                version = "1.0.0",
-                compile_time = "2025-02-28T12:34:56Z",
-                idf_version = "android-${android.os.Build.VERSION.SDK_INT}",
-                elf_sha256 = generateRandomSha256()
-            ),
-            partition_table = listOf(
-                Partition("app", 1, 2, 65536, 2097152),
-                Partition("nvs", 1, 1, 32768, 65536),
-                Partition("phy_init", 1, 3, 98304, 8192)
-            ),
-            ota = OTA("ota_1"),
-            board = Board(
-                name = "Android-${android.os.Build.MODEL}",
-                revision = "v1.0",
-                features = listOf("WiFi", "Bluetooth", "Microphone", "Speaker"),
-                manufacturer = android.os.Build.MANUFACTURER,
-                serial_number = "Android-${Random.nextInt(1000, 9999)}"
-            )
-        )
-    }
-    
-    /**
-     * 同步生成设备信息，用于依赖注入时避免阻塞
-     * 使用DeviceIdManager的同步方法获取缓存的设备ID
-     */
-    fun generateSync(deviceIdManager: DeviceIdManager): DeviceInfo {
-        // 尝试获取缓存的设备ID，如果没有则使用临时ID
-        val deviceId = deviceIdManager.getStableDeviceIdSync() ?: generateMacAddress()
-        
-        return DeviceInfo(
-            version = 2,
-            flash_size = 8388608,
-            psram_size = 4194304,
-            minimum_free_heap_size = Random.nextInt(200000, 300000),
-            mac_address = deviceId,
-            uuid = UUID.randomUUID().toString(),
-            chip_model_name = "android",
-            chip_info = ChipInfo(
-                model = 1000 + android.os.Build.VERSION.SDK_INT,
-                cores = Runtime.getRuntime().availableProcessors(),
-                revision = 1,
-                features = 5
-            ),
-            application = Application(
-                name = "xiaozhi-android",
-                version = "1.0.0",
-                compile_time = "2025-02-28T12:34:56Z",
-                idf_version = "android-${android.os.Build.VERSION.SDK_INT}",
-                elf_sha256 = generateRandomSha256()
-            ),
-            partition_table = listOf(
-                Partition("app", 1, 2, 65536, 2097152),
-                Partition("nvs", 1, 1, 32768, 65536),
-                Partition("phy_init", 1, 3, 98304, 8192)
-            ),
-            ota = OTA("ota_1"),
-            board = Board(
-                name = "Android-${android.os.Build.MODEL}",
-                revision = "v1.0",
-                features = listOf("WiFi", "Bluetooth", "Microphone", "Speaker"),
-                manufacturer = android.os.Build.MANUFACTURER,
-                serial_number = "Android-${Random.nextInt(1000, 9999)}"
-            )
-        )
-    }
-    
-    /**
-     * 生成设备信息的兼容方法（向后兼容）
-     * @deprecated 建议使用带DeviceIdManager参数的版本
-     */
-    @Deprecated("建议使用带DeviceIdManager参数的generate方法")
     fun generate(): DeviceInfo {
         return DeviceInfo(
             version = 2,
@@ -247,18 +155,18 @@ object DummyDataGenerator {
             minimum_free_heap_size = Random.nextInt(200000, 300000),
             mac_address = generateMacAddress(),
             uuid = UUID.randomUUID().toString(),
-            chip_model_name = "android",
+            chip_model_name = "esp32s3",
             chip_info = ChipInfo(
-                model = 1000 + android.os.Build.VERSION.SDK_INT,
-                cores = Runtime.getRuntime().availableProcessors(),
+                model = 3,
+                cores = 2,
                 revision = 1,
                 features = 5
             ),
             application = Application(
-                name = "xiaozhi-android",
-                version = "1.0.0",
+                name = "sensor-hub",
+                version = "1.3.0",
                 compile_time = "2025-02-28T12:34:56Z",
-                idf_version = "android-${android.os.Build.VERSION.SDK_INT}",
+                idf_version = "5.1-beta",
                 elf_sha256 = generateRandomSha256()
             ),
             partition_table = listOf(
@@ -268,19 +176,18 @@ object DummyDataGenerator {
             ),
             ota = OTA("ota_1"),
             board = Board(
-                name = "Android-${android.os.Build.MODEL}",
-                revision = "v1.0",
-                features = listOf("WiFi", "Bluetooth", "Microphone", "Speaker"),
-                manufacturer = android.os.Build.MANUFACTURER,
-                serial_number = "Android-${Random.nextInt(1000, 9999)}"
+                name = "ESP32S3-DevKitM-1",
+                revision = "v1.2",
+                features = listOf("WiFi", "Bluetooth", "USB-OTG", "LCD"),
+                manufacturer = "Espressif",
+                serial_number = "ESP32S3-${Random.nextInt(1000, 9999)}"
             )
         )
     }
 
     private fun generateMacAddress(): String {
-        // 警告：这是临时兼容方案，应该使用DeviceIdManager
-        android.util.Log.w("DummyDataGenerator", "使用固定MAC地址，建议升级到DeviceIdManager")
-        return "00:11:22:33:44:55" // 保持向后兼容，但这将被DeviceIdManager管理
+        return List(6) { Random.nextInt(0x00, 0xFF) }
+            .joinToString(":") { String.format("%02x", it) }
     }
 
     private fun generateRandomSha256(): String {

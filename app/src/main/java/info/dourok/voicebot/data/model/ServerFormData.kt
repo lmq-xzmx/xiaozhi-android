@@ -13,18 +13,17 @@ enum class ServerType {
 
 data class XiaoZhiConfig(
     val webSocketUrl: String = "ws://47.122.144.73:8000/xiaozhi/v1/",
-    val qtaUrl: String = "http://47.122.144.73:8002/xiaozhi/ota/",
+    val otaUrl: String = "http://47.122.144.73:8002/xiaozhi/ota/",
     val transportType: TransportType = TransportType.WebSockets
 )
 
 data class SelfHostConfig(
-    val webSocketUrl: String = "ws://47.122.144.73:8000/xiaozhi/v1/",
+    val webSocketUrl: String = "ws://192.168.1.246:8000",
+    val otaUrl: String = "http://192.168.1.246:8002/xiaozhi/ota/",
     val transportType: TransportType = TransportType.WebSockets // 固定为 WebSockets
 )
 
-enum class TransportType {
-    None, MQTT, WebSockets
-}
+// TransportType已在单独文件中定义，此处移除重复定义
 
 // :feature:form/data/model/ValidationResult.kt
 data class ValidationResult(
