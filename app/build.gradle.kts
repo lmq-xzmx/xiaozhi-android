@@ -20,12 +20,13 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        externalNativeBuild {
-            cmake {
-                arguments += "-DANDROID_STL=c++_shared"
-                cppFlags  += "-std=c++17"
-            }
-        }
+        // 临时注释掉CMake配置
+        // externalNativeBuild {
+        //     cmake {
+        //         arguments += "-DANDROID_STL=c++_shared"
+        //         cppFlags  += "-std=c++17"
+        //     }
+        // }
     }
 
     buildTypes {
@@ -48,13 +49,13 @@ android {
         compose = true
         prefab = true
     }
-    externalNativeBuild {
-        cmake {
-            path = file("src/main/cpp/CMakeLists.txt")
-            version = "3.22.1"
-        }
-    }
-
+    // 临时注释掉CMake配置
+    // externalNativeBuild {
+    //     cmake {
+    //         path = file("src/main/cpp/CMakeLists.txt")
+    //         version = "3.22.1"
+    //     }
+    // }
 }
 
 dependencies {

@@ -2,6 +2,8 @@ package info.dourok.voicebot.config
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.net.wifi.WifiManager
+import android.provider.Settings
 import android.util.Log
 import info.dourok.voicebot.data.model.*
 import kotlinx.coroutines.Dispatchers
@@ -9,7 +11,9 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
+import java.net.NetworkInterface
 import java.net.URL
+import java.security.MessageDigest
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -30,17 +34,149 @@ class OtaConfigManager @Inject constructor(
         private const val KEY_DEVICE_ID = "device_id"
         private const val KEY_LAST_UPDATE = "last_update"
         private const val KEY_ACTIVATION_CODE = "activation_code"
+        private const val CACHE_EXPIRY_MS = 24 * 60 * 60 * 1000L // 24小时
     }
     
     private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     
     /**
-     * 获取或生成设备ID（MAC地址格式）
+     * 🔧 修改3: 获取或生成基于硬件的持久设备ID
      */
     fun getDeviceId(): String {
-        return prefs.getString(KEY_DEVICE_ID, null) ?: generateDeviceId().also { deviceId ->
-            prefs.edit().putString(KEY_DEVICE_ID, deviceId).apply()
-            Log.i(TAG, "✅ 生成新设备ID: $deviceId")
+        // 首先尝试从缓存获取
+        val cachedDeviceId = prefs.getString(KEY_DEVICE_ID, null)
+        if (cachedDeviceId != null) {
+            Log.d(TAG, "✅ 使用缓存的设备ID: $cachedDeviceId")
+            return cachedDeviceId
+        }
+        
+        // 🔧 修改3: 生成基于硬件特征的持久设备ID
+        val hardwareDeviceId = generateHardwareBasedDeviceId()
+        
+        // 保存到缓存
+        prefs.edit().putString(KEY_DEVICE_ID, hardwareDeviceId).apply()
+        Log.i(TAG, "✅ 生成并缓存硬件基础设备ID: $hardwareDeviceId")
+        
+        return hardwareDeviceId
+    }
+    
+    /**
+     * 🔧 修改3: 生成基于硬件特征的设备ID
+     * 即使清除应用数据，只要是同一台设备，生成的ID都是一致的
+     */
+    private fun generateHardwareBasedDeviceId(): String {
+        try {
+            // 方法1: 尝试获取真实MAC地址（Android 6.0+会有限制）
+            val realMacAddress = getRealMacAddress()
+            if (realMacAddress != null) {
+                Log.i(TAG, "🔧 使用真实MAC地址: $realMacAddress")
+                return formatMacAddress(realMacAddress)
+            }
+            
+            // 方法2: 使用WiFi MAC地址（可能返回固定值）
+            val wifiMacAddress = getWifiMacAddress()
+            if (wifiMacAddress != null && wifiMacAddress != "02:00:00:00:00:00") {
+                Log.i(TAG, "🔧 使用WiFi MAC地址: $wifiMacAddress")
+                return formatMacAddress(wifiMacAddress)
+            }
+            
+            // 方法3: 使用Android ID + 设备特征生成稳定ID
+            val androidId = Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
+            val deviceModel = android.os.Build.MODEL
+            val deviceManufacturer = android.os.Build.MANUFACTURER
+            val deviceSerial = try {
+                android.os.Build.getSerial()
+            } catch (e: Exception) {
+                "unknown"
+            }
+            
+            // 组合设备特征
+            val deviceFingerprint = "$androidId-$deviceModel-$deviceManufacturer-$deviceSerial"
+            
+            // 生成基于设备特征的MAC格式ID
+            val hash = MessageDigest.getInstance("SHA-256").digest(deviceFingerprint.toByteArray())
+            val macBytes = hash.sliceArray(0..5) // 取前6字节
+            
+            val generatedMac = macBytes.joinToString(":") { 
+                String.format("%02X", it.toInt() and 0xFF) 
+            }
+            
+            Log.i(TAG, "🔧 基于设备特征生成MAC格式ID: $generatedMac")
+            Log.d(TAG, "设备特征: AndroidID=${androidId}, Model=${deviceModel}, Manufacturer=${deviceManufacturer}")
+            
+            return generatedMac
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ 生成硬件基础设备ID失败，使用随机ID", e)
+            // 最后的fallback：生成随机MAC格式ID
+            return generateRandomMacAddress()
+        }
+    }
+    
+    /**
+     * 获取真实MAC地址（适用于Android 6.0以下或有root权限）
+     */
+    private fun getRealMacAddress(): String? {
+        try {
+            val networkInterfaces = NetworkInterface.getNetworkInterfaces()
+            while (networkInterfaces.hasMoreElements()) {
+                val networkInterface = networkInterfaces.nextElement()
+                
+                // 寻找WiFi网络接口
+                if (networkInterface.name.equals("wlan0", ignoreCase = true)) {
+                    val macBytes = networkInterface.hardwareAddress
+                    if (macBytes != null && macBytes.size == 6) {
+                        val macAddress = macBytes.joinToString(":") { 
+                            String.format("%02X", it.toInt() and 0xFF) 
+                        }
+                        if (macAddress != "02:00:00:00:00:00") { // 排除虚拟MAC
+                            return macAddress
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.d(TAG, "无法获取真实MAC地址: ${e.message}")
+        }
+        return null
+    }
+    
+    /**
+     * 获取WiFi MAC地址（Android 6.0+可能返回固定值）
+     */
+    private fun getWifiMacAddress(): String? {
+        try {
+            val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+            val wifiInfo = wifiManager.connectionInfo
+            val macAddress = wifiInfo.macAddress
+            if (macAddress != null && macAddress != "02:00:00:00:00:00") {
+                return macAddress.uppercase()
+            }
+        } catch (e: Exception) {
+            Log.d(TAG, "无法获取WiFi MAC地址: ${e.message}")
+        }
+        return null
+    }
+    
+    /**
+     * 格式化MAC地址为标准格式
+     */
+    private fun formatMacAddress(macAddress: String): String {
+        return macAddress.replace("-", ":").uppercase()
+    }
+    
+    /**
+     * 生成随机MAC格式地址（作为最后的fallback）
+     */
+    private fun generateRandomMacAddress(): String {
+        val random = Random()
+        val macBytes = ByteArray(6)
+        random.nextBytes(macBytes)
+        // 设置本地管理位，避免与真实MAC冲突
+        macBytes[0] = (macBytes[0].toInt() or 0x02).toByte()
+        
+        return macBytes.joinToString(":") { 
+            String.format("%02X", it.toInt() and 0xFF) 
         }
     }
     
@@ -48,7 +184,19 @@ class OtaConfigManager @Inject constructor(
      * 获取缓存的WebSocket URL
      */
     fun getCachedWebSocketUrl(): String? {
-        return prefs.getString(KEY_WEBSOCKET_URL, null)
+        val lastUpdate = prefs.getLong(KEY_LAST_UPDATE, 0L)
+        val isExpired = System.currentTimeMillis() - lastUpdate > CACHE_EXPIRY_MS
+        
+        return if (isExpired) {
+            Log.d(TAG, "💾 缓存的WebSocket URL已过期")
+            null
+        } else {
+            val url = prefs.getString(KEY_WEBSOCKET_URL, null)
+            if (url != null) {
+                Log.d(TAG, "💾 使用缓存的WebSocket URL: $url")
+            }
+            url
+        }
     }
     
     /**
@@ -62,50 +210,43 @@ class OtaConfigManager @Inject constructor(
      * 从OTA服务器获取配置
      */
     suspend fun fetchOtaConfig(): OtaResult? = withContext(Dispatchers.IO) {
+        val deviceId = getDeviceId()
+        
+        Log.i(TAG, "📡 向OTA服务器请求配置...")
+        Log.d(TAG, "设备ID: $deviceId")
+        Log.d(TAG, "OTA URL: $OTA_URL")
+        
         try {
-            Log.i(TAG, "🔧 开始获取OTA配置...")
-            Log.i(TAG, "📡 OTA URL: $OTA_URL")
+            val connection = URL(OTA_URL).openConnection() as HttpURLConnection
             
-            val deviceId = getDeviceId()
-            val clientId = UUID.randomUUID().toString()
+            // 设置请求方法和头部
+            connection.requestMethod = "POST"
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.setRequestProperty("Device-Id", deviceId)
+            connection.setRequestProperty("Client-Id", "android-app-${System.currentTimeMillis()}")
+            connection.doOutput = true
+            connection.connectTimeout = 10000
+            connection.readTimeout = 15000
             
-            // 构建请求数据
-            val requestData = JSONObject().apply {
-                put("application", JSONObject().apply {
-                    put("version", "1.0.0")
-                    put("name", "xiaozhi-android")
-                })
-                put("macAddress", deviceId)
-                put("board", JSONObject().apply {
-                    put("type", "android")
-                })
-                put("chipModelName", "android")
+            // 构建请求体
+            val requestJson = JSONObject().apply {
+                put("device_id", deviceId)
+                put("client_type", "android")
+                put("app_version", "1.0.0")
+                put("android_version", android.os.Build.VERSION.RELEASE)
+                put("device_model", android.os.Build.MODEL)
             }
             
-            Log.i(TAG, "📤 发送OTA请求...")
-            Log.d(TAG, "设备ID: $deviceId")
-            Log.d(TAG, "客户端ID: $clientId")
+            Log.d(TAG, "📤 请求体: $requestJson")
             
-            val url = URL(OTA_URL)
-            val connection = url.openConnection() as HttpURLConnection
-            
-            connection.apply {
-                requestMethod = "POST"
-                setRequestProperty("Content-Type", "application/json")
-                setRequestProperty("Device-Id", deviceId)
-                setRequestProperty("Client-Id", clientId)
-                doOutput = true
-                connectTimeout = 10000
-                readTimeout = 10000
-            }
-            
-            // 发送请求数据
+            // 发送请求
             OutputStreamWriter(connection.outputStream).use { writer ->
-                writer.write(requestData.toString())
+                writer.write(requestJson.toString())
+                writer.flush()
             }
             
             val responseCode = connection.responseCode
-            Log.i(TAG, "📥 OTA响应码: $responseCode")
+            Log.d(TAG, "📥 响应状态码: $responseCode")
             
             if (responseCode == HttpURLConnection.HTTP_OK) {
                 val response = connection.inputStream.bufferedReader().use { it.readText() }
@@ -165,30 +306,18 @@ class OtaConfigManager @Inject constructor(
             remove(KEY_WEBSOCKET_URL)
             remove(KEY_ACTIVATION_CODE)
             remove(KEY_LAST_UPDATE)
+            // 🔧 修改3: 保留设备ID，确保设备身份持久化
+            // remove(KEY_DEVICE_ID) // 不清除设备ID
             apply()
         }
-        Log.i(TAG, "🗑️ OTA缓存已清除")
+        Log.i(TAG, "🧹 OTA缓存已清除（保留设备ID）")
     }
     
     /**
-     * 生成MAC地址格式的设备ID
+     * 强制清除所有配置（包括设备ID）
      */
-    private fun generateDeviceId(): String {
-        val uuid = UUID.randomUUID().toString().replace("-", "")
-        val macFormat = uuid.substring(0, 12).uppercase()
-        return "${macFormat.substring(0, 2)}:${macFormat.substring(2, 4)}:${macFormat.substring(4, 6)}:" +
-               "${macFormat.substring(6, 8)}:${macFormat.substring(8, 10)}:${macFormat.substring(10, 12)}"
-    }
-    
-    /**
-     * 检查配置是否需要更新（可选功能）
-     */
-    fun shouldUpdateConfig(): Boolean {
-        val lastUpdate = prefs.getLong(KEY_LAST_UPDATE, 0)
-        val now = System.currentTimeMillis()
-        val hoursSinceUpdate = (now - lastUpdate) / (1000 * 60 * 60)
-        
-        // 24小时更新一次配置
-        return hoursSinceUpdate >= 24 || getCachedWebSocketUrl() == null
+    fun clearAllConfig() {
+        prefs.edit().clear().apply()
+        Log.i(TAG, "🧹 所有OTA配置已清除")
     }
 } 

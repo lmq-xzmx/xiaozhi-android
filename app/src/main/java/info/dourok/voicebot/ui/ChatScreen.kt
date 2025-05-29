@@ -33,11 +33,12 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun ChatScreen(
-    viewModel: ChatViewMode = hiltViewModel()
+    viewModel: ChatViewModel = hiltViewModel()
 ) {
     val messages by viewModel.display.chatFlow.collectAsState()
     val emotion by viewModel.display.emotionFlow.collectAsState()
-    val deviceState by viewModel.deviceStateFlow.collectAsState() // Added device state
+    val deviceState by viewModel::deviceState
+    
     // Emotion to emoji mapping
     val emotionEmojiMap = mapOf(
         "neutral" to "😐",
@@ -95,7 +96,7 @@ fun ChatScreen(
 
         // Device State Text
         Text(
-            text = deviceState.name.lowercase()
+            text = deviceState.toString().lowercase()
                 .replaceFirstChar { it.uppercase() },
             style = MaterialTheme.typography.bodySmall,
             color = when (deviceState) {
@@ -112,7 +113,7 @@ fun ChatScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(messages.reversed()) { message ->
+            items(messages.asReversed()) { message ->
                 ChatMessageItem(message)
             }
         }

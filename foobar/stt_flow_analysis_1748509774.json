@@ -1,0 +1,241 @@
+{
+  "current_status": {
+    "step1_audio_capture": {
+      "status": "✅ 正常",
+      "details": "AudioRecorder工作正常，16kHz单声道",
+      "issues": [],
+      "gap": "无差距"
+    },
+    "step2_opus_encoding": {
+      "status": "✅ 正常",
+      "details": "OpusEncoder正常，帧大小符合预期",
+      "issues": [],
+      "gap": "无差距"
+    },
+    "step3_websocket_send": {
+      "status": "✅ 正常",
+      "details": "WebSocket连接稳定，音频传输成功",
+      "issues": [],
+      "gap": "无差距"
+    },
+    "step4_server_receive": {
+      "status": "❌ 异常",
+      "details": "服务器运行:False, 端口监听:True",
+      "issues": [
+        "xiaozhi-server进程未运行"
+      ],
+      "gap": "服务器状态异常"
+    },
+    "step5_vad_detection": {
+      "status": "❌ 异常",
+      "details": "模型存在:False, 配置正确:True",
+      "issues": [
+        "SileroVAD模型文件缺失"
+      ],
+      "gap": "VAD模型或配置问题"
+    },
+    "step6_stt_recognition": {
+      "status": "❌ 失效",
+      "details": "模型存在:False, 配置正确:True",
+      "issues": [
+        "FunASR模型文件缺失",
+        "STT无识别结果返回"
+      ],
+      "gap": "STT识别完全失效"
+    },
+    "step7_result_return": {
+      "status": "❌ 失效",
+      "details": "无STT响应消息返回",
+      "issues": [
+        "服务器端无stt类型响应"
+      ],
+      "gap": "结果返回链路中断"
+    },
+    "step8_ui_display": {
+      "status": "🚫 阻塞",
+      "details": "由于无STT结果，UI无法更新",
+      "issues": [
+        "无>> [用户语音]显示"
+      ],
+      "gap": "UI更新被阻塞"
+    }
+  },
+  "target_status": {
+    "step1_audio_capture": {
+      "status": "正常",
+      "description": "AudioRecorder采集16kHz单声道音频",
+      "metrics": "音频数据连续，无丢帧",
+      "timing": "实时采集，延迟<50ms"
+    },
+    "step2_opus_encoding": {
+      "status": "正常",
+      "description": "OpusEncoder编码为60ms帧",
+      "metrics": "静音帧~20字节，语音帧~200字节",
+      "timing": "编码延迟<10ms"
+    },
+    "step3_websocket_send": {
+      "status": "正常",
+      "description": "WebSocket稳定传输音频数据",
+      "metrics": "传输成功率100%，无丢包",
+      "timing": "网络延迟<100ms"
+    },
+    "step4_server_receive": {
+      "status": "正常",
+      "description": "服务器正确接收并处理音频包",
+      "metrics": "音频包完整接收，格式识别正确",
+      "timing": "接收延迟<20ms"
+    },
+    "step5_vad_detection": {
+      "status": "正常",
+      "description": "SileroVAD检测语音活动",
+      "metrics": "语音检测准确率>95%，误报率<5%",
+      "timing": "VAD处理延迟<50ms"
+    },
+    "step6_stt_recognition": {
+      "status": "正常",
+      "description": "FunASR进行语音识别",
+      "metrics": "识别准确率>90%，支持中文",
+      "timing": "识别延迟<2000ms"
+    },
+    "step7_result_return": {
+      "status": "正常",
+      "description": "STT结果通过WebSocket返回",
+      "metrics": "结果格式正确，包含完整文本",
+      "timing": "返回延迟<100ms"
+    },
+    "step8_ui_display": {
+      "status": "正常",
+      "description": "Android应用显示识别结果",
+      "metrics": "UI更新及时，文本显示正确",
+      "timing": "UI更新延迟<50ms"
+    }
+  },
+  "flow_gaps": {
+    "step1_audio_capture": {
+      "gap_level": "无",
+      "current_status": "✅ 正常",
+      "target_status": "正常",
+      "issues": [],
+      "gap_description": "无差距"
+    },
+    "step2_opus_encoding": {
+      "gap_level": "无",
+      "current_status": "✅ 正常",
+      "target_status": "正常",
+      "issues": [],
+      "gap_description": "无差距"
+    },
+    "step3_websocket_send": {
+      "gap_level": "无",
+      "current_status": "✅ 正常",
+      "target_status": "正常",
+      "issues": [],
+      "gap_description": "无差距"
+    },
+    "step4_server_receive": {
+      "gap_level": "严重",
+      "current_status": "❌ 异常",
+      "target_status": "正常",
+      "issues": [
+        "xiaozhi-server进程未运行"
+      ],
+      "gap_description": "服务器状态异常"
+    },
+    "step5_vad_detection": {
+      "gap_level": "严重",
+      "current_status": "❌ 异常",
+      "target_status": "正常",
+      "issues": [
+        "SileroVAD模型文件缺失"
+      ],
+      "gap_description": "VAD模型或配置问题"
+    },
+    "step6_stt_recognition": {
+      "gap_level": "严重",
+      "current_status": "❌ 失效",
+      "target_status": "正常",
+      "issues": [
+        "FunASR模型文件缺失",
+        "STT无识别结果返回"
+      ],
+      "gap_description": "STT识别完全失效"
+    },
+    "step7_result_return": {
+      "gap_level": "严重",
+      "current_status": "❌ 失效",
+      "target_status": "正常",
+      "issues": [
+        "服务器端无stt类型响应"
+      ],
+      "gap_description": "结果返回链路中断"
+    },
+    "step8_ui_display": {
+      "gap_level": "严重",
+      "current_status": "🚫 阻塞",
+      "target_status": "正常",
+      "issues": [
+        "无>> [用户语音]显示"
+      ],
+      "gap_description": "UI更新被阻塞"
+    }
+  },
+  "timestamp": "2025-05-29 17:09:34",
+  "fix_plan": {
+    "immediate_fixes": [
+      {
+        "step": "step4_server_receive",
+        "action": "检查并启动xiaozhi-server服务",
+        "command": "cd ../main/xiaozhi-server && python app.py",
+        "priority": "P0"
+      },
+      {
+        "step": "step4_server_receive",
+        "action": "验证模型文件完整性",
+        "command": "ls -la models/snakers4_silero-vad/ models/SenseVoiceSmall/",
+        "priority": "P0"
+      },
+      {
+        "step": "step5_vad_detection",
+        "action": "检查并启动xiaozhi-server服务",
+        "command": "cd ../main/xiaozhi-server && python app.py",
+        "priority": "P0"
+      },
+      {
+        "step": "step5_vad_detection",
+        "action": "验证模型文件完整性",
+        "command": "ls -la models/snakers4_silero-vad/ models/SenseVoiceSmall/",
+        "priority": "P0"
+      },
+      {
+        "step": "step6_stt_recognition",
+        "action": "检查并启动xiaozhi-server服务",
+        "command": "cd ../main/xiaozhi-server && python app.py",
+        "priority": "P0"
+      },
+      {
+        "step": "step6_stt_recognition",
+        "action": "验证模型文件完整性",
+        "command": "ls -la models/snakers4_silero-vad/ models/SenseVoiceSmall/",
+        "priority": "P0"
+      }
+    ],
+    "verification_steps": [
+      "测试服务器端STT页面功能",
+      "检查服务器实时日志输出",
+      "验证Android客户端STT响应",
+      "确认完整对话流程"
+    ],
+    "monitoring_setup": [
+      "设置服务器音频接收日志",
+      "添加VAD检测状态日志",
+      "增加STT处理时间监控",
+      "添加错误异常捕获"
+    ]
+  },
+  "fixes_executed": [
+    "需要启动xiaozhi-server服务",
+    "需要下载SileroVAD模型",
+    "需要下载FunASR模型",
+    "已生成修复脚本"
+  ]
+}
