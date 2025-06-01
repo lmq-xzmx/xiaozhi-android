@@ -682,9 +682,9 @@ class ChatViewModel @Inject constructor(
                                                          json.optString("recognition", "")))
                                 if (possibleSTTContent.isNotEmpty()) {
                                     Log.i(TAG, "🎯 疑似STT无类型响应，文本: '$possibleSTTContent'")
-                                    schedule {
+                                        schedule {
                                         display.setChatMessage("user", possibleSTTContent)
-                                    }
+                                        }
                                 } else {
                                     Log.d(TAG, "   无类型消息无有效内容，跳过")
                                 }
@@ -709,7 +709,7 @@ class ChatViewModel @Inject constructor(
                     Log.e(TAG, "❌ 消息处理流程异常: ${e.message}", e)
                     schedule {
                         showErrorMessage("消息处理异常: ${e.message}")
-                        deviceState = DeviceState.FATAL_ERROR
+                    deviceState = DeviceState.FATAL_ERROR
                     }
                 }
             }

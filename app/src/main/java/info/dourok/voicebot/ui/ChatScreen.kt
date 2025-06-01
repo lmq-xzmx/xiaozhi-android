@@ -91,31 +91,22 @@ fun ChatScreen(
         // 根据设备状态显示不同内容
         when (deviceState) {
             DeviceState.STARTING -> {
-                InitializationProgress(initializationStage)
+                InitializationProgress(stage = initializationStage)
             }
             
             DeviceState.FATAL_ERROR -> {
                 ErrorDisplay(
-                    onRetry = { 
-                        viewModel.toggleChatState()
-                    }
+                    onRetry = { viewModel.toggleChatState() }
                 )
             }
             
-            DeviceState.UNKNOWN, DeviceState.WIFI_CONFIGURING, DeviceState.UPGRADING -> {
-                // 其他状态显示等待界面
-                InitializationProgress(initializationStage)
-            }
-            
             else -> {
-                // 正常聊天界面
+                // 主聊天界面
                 ChatContent(
                     chatMessages = chatMessages,
-                    emotion = emotion,
                     deviceState = deviceState,
-                    onToggleChat = { viewModel.toggleChatState() },
-                    onStartListening = { viewModel.startListening() },
-                    onStopListening = { viewModel.stopListening() }
+                    emotion = emotion,
+                    onToggleChat = { viewModel.toggleChatState() }
                 )
             }
         }
@@ -130,16 +121,18 @@ fun InitializationProgress(stage: InitializationStage) {
         verticalArrangement = Arrangement.Center
     ) {
         CircularProgressIndicator(
-            modifier = Modifier.size(64.dp),
-            color = MaterialTheme.colorScheme.primary
+            modifier = Modifier.size(80.dp),
+            color = MaterialTheme.colorScheme.primary,
+            strokeWidth = 6.dp
         )
         
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(32.dp))
         
         Text(
-            text = "正在初始化系统...",
+            text = "正在初始化小智助手...",
             style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onSurface
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.Medium
         )
         
         Spacer(modifier = Modifier.height(16.dp))
@@ -147,7 +140,29 @@ fun InitializationProgress(stage: InitializationStage) {
         Text(
             text = getInitializationStageText(stage),
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        // 进度指示器
+        val progress = when (stage) {
+            InitializationStage.CHECKING_PREREQUISITES -> 0.2f
+            InitializationStage.INITIALIZING_PROTOCOL -> 0.4f
+            InitializationStage.CONNECTING_NETWORK -> 0.6f
+            InitializationStage.SETTING_UP_AUDIO -> 0.8f
+            InitializationStage.STARTING_MESSAGE_PROCESSING -> 0.9f
+            InitializationStage.READY -> 1.0f
+        }
+        
+        androidx.compose.material3.LinearProgressIndicator(
+            progress = progress,
+            modifier = Modifier
+                .fillMaxWidth(0.7f)
+                .height(8.dp),
+            color = MaterialTheme.colorScheme.primary,
+            trackColor = MaterialTheme.colorScheme.surfaceVariant
         )
     }
 }
@@ -160,31 +175,41 @@ fun ErrorDisplay(onRetry: () -> Unit) {
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "❌",
-            fontSize = 64.sp
+            text = "⚠️",
+            fontSize = 80.sp,
+            color = MaterialTheme.colorScheme.error
+        )
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        Text(
+            text = "连接失败",
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.error,
+            fontWeight = FontWeight.Bold
         )
         
         Spacer(modifier = Modifier.height(16.dp))
         
         Text(
-            text = "系统初始化失败",
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.error
-        )
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        Text(
-            text = "请检查网络连接和服务器配置",
-            style = MaterialTheme.typography.bodyMedium,
+            text = "请检查网络连接或服务器状态",
+            style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
         
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(32.dp))
         
-        Button(onClick = onRetry) {
-            Text("重试")
+        Button(
+            onClick = onRetry,
+            modifier = Modifier
+                .fillMaxWidth(0.6f)
+                .height(48.dp)
+        ) {
+            Text(
+                text = "重新连接",
+                style = MaterialTheme.typography.titleMedium
+            )
         }
     }
 }
@@ -192,13 +217,30 @@ fun ErrorDisplay(onRetry: () -> Unit) {
 @Composable
 fun ChatContent(
     chatMessages: List<Message>,
-    emotion: String,
     deviceState: DeviceState,
-    onToggleChat: () -> Unit,
-    onStartListening: () -> Unit,
-    onStopListening: () -> Unit
+    emotion: String,
+    onToggleChat: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
+        // 情感状态显示
+        if (emotion != "neutral") {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                )
+            ) {
+                Text(
+                    text = "😊 当前情感: $emotion",
+                    modifier = Modifier.padding(12.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+        }
+        
         // 聊天消息列表
         LazyColumn(
             modifier = Modifier.weight(1f),
@@ -251,56 +293,68 @@ fun ChatMessageItem(message: Message) {
             ),
             shape = RoundedCornerShape(12.dp)
         ) {
-            Text(
-                text = message.message,
-                modifier = Modifier.padding(12.dp),
-                color = if (isUser) 
-                    MaterialTheme.colorScheme.onPrimary 
-                else 
-                    MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text(
+                    text = message.message,
+                    color = if (isUser) 
+                        MaterialTheme.colorScheme.onPrimary 
+                    else 
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                Text(
+                    text = message.nowInString,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (isUser) 
+                        MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
+                    else 
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
+            }
         }
     }
 }
 
 // 辅助函数
-fun getDeviceStateText(state: DeviceState): String {
-    return when (state) {
+fun getDeviceStateText(deviceState: DeviceState): String {
+    return when (deviceState) {
+        DeviceState.UNKNOWN -> "未知状态"
         DeviceState.STARTING -> "启动中"
+        DeviceState.WIFI_CONFIGURING -> "配置网络"
         DeviceState.IDLE -> "空闲"
+        DeviceState.CONNECTING -> "连接中"
         DeviceState.LISTENING -> "监听中"
         DeviceState.SPEAKING -> "播放中"
-        DeviceState.CONNECTING -> "连接中"
-        DeviceState.ACTIVATING -> "激活中"
-        DeviceState.FATAL_ERROR -> "错误"
-        DeviceState.UNKNOWN -> "未知状态"
-        DeviceState.WIFI_CONFIGURING -> "配置WiFi"
         DeviceState.UPGRADING -> "升级中"
-    }
-}
-
-fun getDeviceStateColor(state: DeviceState): Color {
-    return when (state) {
-        DeviceState.STARTING -> Color.Blue
-        DeviceState.IDLE -> Color.Gray
-        DeviceState.LISTENING -> Color.Green
-        DeviceState.SPEAKING -> Color.Magenta
-        DeviceState.CONNECTING -> Color.Cyan
-        DeviceState.ACTIVATING -> Color.Yellow
-        DeviceState.FATAL_ERROR -> Color.Red
-        DeviceState.UNKNOWN -> Color.Gray
-        DeviceState.WIFI_CONFIGURING -> Color.Blue
-        DeviceState.UPGRADING -> Color(0xFFFFA500)
+        DeviceState.ACTIVATING -> "激活中"
+        DeviceState.FATAL_ERROR -> "连接错误"
     }
 }
 
 fun getInitializationStageText(stage: InitializationStage): String {
     return when (stage) {
-        InitializationStage.CHECKING_PREREQUISITES -> "检查系统环境"
-        InitializationStage.INITIALIZING_PROTOCOL -> "初始化网络协议"
-        InitializationStage.CONNECTING_NETWORK -> "建立网络连接"
-        InitializationStage.SETTING_UP_AUDIO -> "配置音频系统"
-        InitializationStage.STARTING_MESSAGE_PROCESSING -> "启动消息处理"
-        InitializationStage.READY -> "系统就绪"
+        InitializationStage.CHECKING_PREREQUISITES -> "检查前置条件..."
+        InitializationStage.INITIALIZING_PROTOCOL -> "初始化协议..."
+        InitializationStage.CONNECTING_NETWORK -> "连接网络..."
+        InitializationStage.SETTING_UP_AUDIO -> "设置音频..."
+        InitializationStage.STARTING_MESSAGE_PROCESSING -> "启动消息处理..."
+        InitializationStage.READY -> "准备就绪"
+    }
+}
+
+fun getDeviceStateColor(deviceState: DeviceState): Color {
+    return when (deviceState) {
+        DeviceState.UNKNOWN -> Color.Gray
+        DeviceState.STARTING -> Color(0xFFFF9800) // Orange
+        DeviceState.WIFI_CONFIGURING -> Color(0xFF2196F3) // Blue
+        DeviceState.IDLE -> Color(0xFF4CAF50) // Green
+        DeviceState.CONNECTING -> Color(0xFF2196F3) // Blue
+        DeviceState.LISTENING -> Color(0xFFF44336) // Red
+        DeviceState.SPEAKING -> Color(0xFF9C27B0) // Purple
+        DeviceState.UPGRADING -> Color(0xFF00BCD4) // Cyan
+        DeviceState.ACTIVATING -> Color(0xFFFF9800) // Orange
+        DeviceState.FATAL_ERROR -> Color(0xFFF44336) // Red
     }
 }

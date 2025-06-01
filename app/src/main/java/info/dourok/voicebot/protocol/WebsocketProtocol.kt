@@ -41,7 +41,27 @@ class WebsocketProtocol(private val deviceInfo: DeviceInfo,
     }
 
     override suspend fun start() {
-        Log.i(TAG, "WebSocket protocol start() called")
+        Log.i(TAG, "🚀 WebSocket protocol start() - 开始初始化")
+        
+        try {
+            // 重置连接状态
+            isOpen = false
+            isReconnecting = false
+            reconnectAttempts = 0
+            
+            // 取消之前的WebSocket连接
+            websocket?.let {
+                Log.i(TAG, "清理旧的WebSocket连接")
+                it.close(1000, "重新启动")
+                websocket = null
+            }
+            
+            Log.i(TAG, "✅ WebSocket协议初始化完成")
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ WebSocket协议启动异常: ${e.message}", e)
+            throw e
+        }
     }
 
     override suspend fun sendAudio(data: ByteArray) {
@@ -112,6 +132,13 @@ class WebsocketProtocol(private val deviceInfo: DeviceInfo,
 
     override suspend fun openAudioChannel(): Boolean = withContext(Dispatchers.IO) {
         Log.i(TAG, "开始打开音频通道到: $url")
+        Log.i(TAG, "=== 🔍 详细连接诊断 START ===")
+        Log.i(TAG, "目标URL: $url")
+        Log.i(TAG, "访问令牌: $accessToken")
+        Log.i(TAG, "设备MAC: ${deviceInfo.mac_address}")
+        Log.i(TAG, "设备UUID: ${deviceInfo.uuid}")
+        Log.i(TAG, "当前连接状态: isOpen=$isOpen, websocket=$websocket")
+        Log.i(TAG, "=== 🔍 详细连接诊断 END ===")
         
         try {
             // 关闭旧连接
@@ -171,7 +198,8 @@ class WebsocketProtocol(private val deviceInfo: DeviceInfo,
                             // 详细分析消息内容 - 增强STT诊断
                             analyzeMessageContent(json, type)
                             
-                            // 将消息转发给消息处理流
+                            // ⚠️ 关键修复：确保所有消息都能到达ChatViewModel
+                            Log.i(TAG, "💫 转发消息到ChatViewModel处理流程...")
                             incomingJsonFlow.emit(json)
                             
                             // 特殊处理逻辑
@@ -243,7 +271,7 @@ class WebsocketProtocol(private val deviceInfo: DeviceInfo,
             
             val success = isOpen && websocket != null
             Log.i(TAG, if (success) "✅ 音频通道打开成功" else "❌ 音频通道打开失败")
-            return@withContext success
+                return@withContext success
             
         } catch (e: Exception) {
             Log.e(TAG, "打开音频通道异常: ${e.message}", e)
@@ -336,7 +364,7 @@ class WebsocketProtocol(private val deviceInfo: DeviceInfo,
                 if (json.has("text") && json.optString("text").isNotEmpty()) {
                     Log.i(TAG, "   包含文本内容，可能有价值")
                 }
-            }
+    }
         }
     }
 
@@ -428,32 +456,32 @@ class WebsocketProtocol(private val deviceInfo: DeviceInfo,
     private fun parseServerHello(root: JSONObject) {
         Log.i(TAG, "解析服务器Hello: $root")
         
-        val transport = root.optString("transport")
-        Log.d(TAG, "服务器传输方式: $transport")
-        
+            val transport = root.optString("transport")
+            Log.d(TAG, "服务器传输方式: $transport")
+            
         if (transport != "websocket" && transport != "udp") {
             Log.e(TAG, "不支持的传输方式: $transport")
-            helloReceived.complete(false)
-            return
-        }
-
-        val audioParams = root.optJSONObject("audio_params")
-        if (audioParams != null) {
-            Log.d(TAG, "服务器音频参数: $audioParams")
-            val sampleRate = audioParams.optInt("sample_rate", -1)
-            if (sampleRate != -1) {
-                serverSampleRate = sampleRate
-                Log.d(TAG, "服务器采样率: $sampleRate")
+                helloReceived.complete(false)
+                return
             }
-        } else {
+
+            val audioParams = root.optJSONObject("audio_params")
+            if (audioParams != null) {
+                Log.d(TAG, "服务器音频参数: $audioParams")
+                val sampleRate = audioParams.optInt("sample_rate", -1)
+                if (sampleRate != -1) {
+                    serverSampleRate = sampleRate
+                    Log.d(TAG, "服务器采样率: $sampleRate")
+                }
+            } else {
             Log.w(TAG, "服务器Hello中无音频参数")
-        }
-        
+            }
+            
         sessionId = root.optString("session_id", sessionId)
-        Log.i(TAG, "从服务器获取会话ID: $sessionId")
+            Log.i(TAG, "从服务器获取会话ID: $sessionId")
 
         Log.i(TAG, "服务器Hello解析成功，完成握手")
-        helloReceived.complete(true)
+            helloReceived.complete(true)
     }
 
     // 清理资源

@@ -2,17 +2,17 @@ package info.dourok.voicebot.data
 
 /**
  * 统一音频参数配置
- * 解决音频编码器参数硬编码问题，提供中心化配置管理
+ * 修改为与服务器兼容的参数：version=1, frame_duration=60ms
  */
 object AudioConfig {
-    // 基础音频参数 - 与ESP32完全兼容
+    // 基础音频参数 - 与服务器端点兼容
     const val SAMPLE_RATE = 16000
     const val CHANNELS = 1
-    const val FRAME_DURATION_MS = 20  // 修改为20ms，与ESP32一致
+    const val FRAME_DURATION_MS = 60  // 修改为60ms，与服务器端点一致
     const val BITRATE = 24000
     
-    // 协议参数 - 与ESP32 MQTT版本兼容
-    const val PROTOCOL_VERSION = 3
+    // 协议参数 - 与服务器端点兼容
+    const val PROTOCOL_VERSION = 1  // 修改为版本1，与服务器一致
     const val TRANSPORT_TYPE = "websocket"
     
     // 音频格式

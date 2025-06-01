@@ -100,7 +100,6 @@ fun AppNavigation() {
     val entryPoint = EntryPointAccessors.fromActivity(activity, NavigationEntryPoint::class.java)
     val navigationEvents = entryPoint.getNavigationEvents()
 
-
     Log.d("AppNavigation", "navigationEvents: $navigationEvents")
 
     LaunchedEffect(navController) {
@@ -115,13 +114,17 @@ fun AppNavigation() {
         }
     }
 
-    NavHost(navController = navController, startDestination = "chat") {
-        composable("form") { ServerFormScreen() }
-        composable("activation") { ActivationScreen() }
+    NavHost(navController = navController, startDestination = "form") {
+        composable("form") { 
+            ServerFormScreen()
+        }
+        composable("activation") { 
+            ActivationScreen() 
+        }
         composable("chat") { 
             ChatScreen(
                 onNavigateBack = {
-                    navController.popBackStack()
+                    navController.popBackStack("form", inclusive = false)
                 }
             )
         }
