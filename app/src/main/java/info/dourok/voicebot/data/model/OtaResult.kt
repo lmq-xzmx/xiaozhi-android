@@ -29,32 +29,37 @@ import org.json.JSONObject
 
 
 data class OtaResult(
-    val mqttConfig: MqttConfig,
+    val mqttConfig: MqttConfig?,
     val activation: Activation?,
     val serverTime: ServerTime?,
     val firmware: Firmware?
 )
 
-fun fromJsonToOtaResult(json: JSONObject): OtaResult {
-    return OtaResult(
-        mqttConfig = fromJsonToMqttConfig(json.getJSONObject("mqtt")),
-        activation = json.optJSONObject("activation")?.let { fromJsonToActivation(it) },
-        serverTime = json.optJSONObject("server_time")?.let { fromJsonToServerTime(it) },
-        firmware = json.optJSONObject("firmware")?.let { fromJsonToFirmware(it) }
-    )
+fun fromJsonToOtaResult(json: JSONObject): OtaResult? {
+    return try {
+        OtaResult(
+            mqttConfig = json.optJSONObject("mqtt")?.let { fromJsonToMqttConfig(it) },
+            activation = json.optJSONObject("activation")?.let { fromJsonToActivation(it) },
+            serverTime = json.optJSONObject("server_time")?.let { fromJsonToServerTime(it) },
+            firmware = json.optJSONObject("firmware")?.let { fromJsonToFirmware(it) }
+        )
+    } catch (e: Exception) {
+        android.util.Log.e("OtaResult", "Failed to parse OTA result: ${e.message}")
+        null
+    }
 }
 
 
 data class ServerTime(
     val timestamp: Long,
-    val timezone: String?,
+    val timezone: String,
     val timezoneOffset: Int
 )
 
 fun fromJsonToServerTime(json: JSONObject): ServerTime {
     return ServerTime(
         timestamp = json.getLong("timestamp"),
-        timezone = json.optString("timezone", null),
+        timezone = json.getString("timezone"),
         timezoneOffset = json.getInt("timezone_offset")
     )
 }

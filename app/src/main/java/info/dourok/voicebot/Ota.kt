@@ -114,8 +114,19 @@ class Ota @Inject constructor(private val context: Context,
 
     // 解析 JSON 响应
     private fun parseJsonResponse(json: JSONObject) {
-        // Activation
-        otaResult = fromJsonToOtaResult(json)
+        Log.i(TAG, "Parsing JSON response: $json")
+        try {
+            // Activation
+            otaResult = fromJsonToOtaResult(json)
+            if (otaResult != null) {
+                Log.i(TAG, "OTA result parsed successfully: mqttConfig=${otaResult?.mqttConfig != null}, activation=${otaResult?.activation != null}")
+            } else {
+                Log.w(TAG, "OTA result parsing returned null, but continuing...")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to parse OTA response: ${e.message}", e)
+            otaResult = null
+        }
     }
 
     // 标记当前版本有效（Android 不直接支持分区，这里模拟）
@@ -219,9 +230,9 @@ class Ota @Inject constructor(private val context: Context,
             "${context.packageName}.fileprovider",
             file
         )
-        val intent = Intent(Intent.ACTION_INSTALL_PACKAGE).apply {
-            data = uri
-            flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, "application/vnd.android.package-archive")
+            flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true)
             }

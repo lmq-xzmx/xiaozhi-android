@@ -11,7 +11,7 @@ import java.util.concurrent.TimeUnit
 // 模拟 Protocol 基类中的枚举和常量
 enum class AbortReason { WAKE_WORD_DETECTED, NONE }
 enum class ListeningMode { ALWAYS_ON, AUTO_STOP, MANUAL }
-enum class AudioState { OPENED, CLOSED }
+enum class AudioState { OPENED, CLOSED, ERROR }
 
 // Protocol 抽象类（对应 C++ 的 Protocol）
 abstract class Protocol {

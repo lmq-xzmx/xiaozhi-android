@@ -20,10 +20,12 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
+        // 启用CMake配置
         externalNativeBuild {
             cmake {
                 arguments += "-DANDROID_STL=c++_shared"
                 cppFlags  += "-std=c++17"
+                abiFilters("arm64-v8a", "x86")
             }
         }
     }
@@ -48,13 +50,13 @@ android {
         compose = true
         prefab = true
     }
+    // 启用CMake配置
     externalNativeBuild {
         cmake {
             path = file("src/main/cpp/CMakeLists.txt")
             version = "3.22.1"
         }
     }
-
 }
 
 dependencies {

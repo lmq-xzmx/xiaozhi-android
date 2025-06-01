@@ -43,17 +43,24 @@ class FormViewModel @Inject constructor(
         viewModelScope.launch {
             repository.resultFlow.collect {
                 when (it) {
-                    FormResult.SelfHostResult -> navigationEvents.emit("chat")
-                    is FormResult.XiaoZhiResult -> it.otaResult?.let {
-                        if (it.activation != null) {
-                            Log.d("FormViewModel", "activationFlow: $it")
+                    FormResult.SelfHostResult -> {
+                        Log.d("FormViewModel", "SelfHost result, navigating to chat")
+                        navigationEvents.emit("chat")
+                    }
+                    is FormResult.XiaoZhiResult -> {
+                        Log.d("FormViewModel", "XiaoZhi result: otaResult=${it.otaResult}")
+                        if (it.otaResult?.activation != null) {
+                            Log.d("FormViewModel", "Has activation, navigating to activation screen")
                             navigationEvents.emit("activation")
                         } else {
+                            // 即使otaResult为null或没有activation也要导航到聊天页面
+                            Log.d("FormViewModel", "No activation needed, navigating to chat")
                             navigationEvents.emit("chat")
                         }
                     }
-
-                    null -> {} // ignore
+                    null -> {
+                        Log.d("FormViewModel", "Received null result, ignoring")
+                    }
                 }
             }
         }

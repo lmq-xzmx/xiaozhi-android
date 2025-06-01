@@ -12,8 +12,8 @@ enum class ServerType {
 }
 
 data class XiaoZhiConfig(
-    val webSocketUrl: String = "wss://api.tenclass.net/xiaozhi/v1/",
-    val qtaUrl: String = "https://api.tenclass.net/xiaozhi/ota/",
+    val webSocketUrl: String = "ws://47.122.144.73:8000/xiaozhi/v1/",
+    val qtaUrl: String = "http://47.122.144.73:8002/xiaozhi/ota/",
     val transportType: TransportType = TransportType.MQTT
 )
 

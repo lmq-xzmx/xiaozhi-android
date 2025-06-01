@@ -12,6 +12,28 @@ static OpusEncoder *encoderHandle = nullptr;
 
 extern "C" {
 
+/**
+ * 测试Opus编码器是否可以正常初始化
+ * 用于验证Native库功能完整性
+ */
+JNIEXPORT jboolean JNICALL
+Java_info_dourok_voicebot_ui_ChatViewModel_testOpusEncoder(JNIEnv *env, jobject thiz) {
+    LOGI("开始测试Opus编码器初始化...");
+    
+    int error;
+    OpusEncoder *test_encoder = opus_encoder_create(16000, 1, OPUS_APPLICATION_VOIP, &error);
+    
+    if (error != OPUS_OK || test_encoder == nullptr) {
+        LOGE("Opus编码器测试失败: %s", opus_strerror(error));
+        return JNI_FALSE;
+    }
+    
+    // 清理测试编码器
+    opus_encoder_destroy(test_encoder);
+    LOGI("✅ Opus编码器测试成功");
+    return JNI_TRUE;
+}
+
 JNIEXPORT jlong JNICALL
 Java_info_dourok_voicebot_OpusEncoder_nativeInitEncoder(JNIEnv *env, jobject thiz,
                                                         jint sample_rate, jint channels,

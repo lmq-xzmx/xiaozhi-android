@@ -102,11 +102,11 @@ fun fromJsonToDeviceInfo(json: String): DeviceInfo {
     return DeviceInfo(
         version = obj.getInt("version"),
         flash_size = obj.getInt("flash_size"),
-        psram_size = obj.getInt("psram_size"),
-        minimum_free_heap_size = obj.getInt("minimum_free_heap_size"),
-        mac_address = obj.getString("mac_address"),
-        uuid = obj.getString("uuid"),
-        chip_model_name = obj.getString("chip_model_name"),
+        psram_size = obj.optInt("psram_size", 0),
+        minimum_free_heap_size = obj.optInt("minimum_free_heap_size", 0),
+        mac_address = obj.optString("mac_address", "00:00:00:00:00:00"),
+        uuid = obj.optString("uuid", UUID.randomUUID().toString()),
+        chip_model_name = obj.optString("chip_model_name", "unknown"),
         chip_info = ChipInfo(
             model = obj.getJSONObject("chip_info").getInt("model"),
             cores = obj.getJSONObject("chip_info").getInt("cores"),

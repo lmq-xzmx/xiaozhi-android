@@ -133,13 +133,13 @@ class MqttProtocol(
         sessionId = ""
         val helloMessage = JSONObject().apply {
             put("type", "hello")
-            put("version", 3)
+            put("version", 1)
             put("transport", "udp")
             put("audio_params", JSONObject().apply {
                 put("format", "opus")
                 put("sample_rate", 16000)
                 put("channels", 1)
-                put("frame_duration", 20)
+                put("frame_duration", 60)
             })
         }
         sendText(helloMessage.toString())

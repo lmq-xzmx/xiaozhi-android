@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.Alignment
 import androidx.core.app.ActivityCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -104,14 +105,26 @@ fun AppNavigation() {
 
     LaunchedEffect(navController) {
         navigationEvents.collect { route ->
-            navController.navigate(route)
+            Log.d("AppNavigation", "🧭 导航到: $route")
+            try {
+                navController.navigate(route)
+                Log.d("AppNavigation", "✅ 导航成功: $route")
+            } catch (e: Exception) {
+                Log.e("AppNavigation", "❌ 导航失败: $route, 错误: ${e.message}", e)
+            }
         }
     }
 
-    NavHost(navController = navController, startDestination = "form") {
+    NavHost(navController = navController, startDestination = "chat") {
         composable("form") { ServerFormScreen() }
         composable("activation") { ActivationScreen() }
-        composable("chat") { ChatScreen() }
+        composable("chat") { 
+            ChatScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
     }
 }
 
